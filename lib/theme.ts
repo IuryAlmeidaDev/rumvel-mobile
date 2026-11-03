@@ -1,0 +1,73 @@
+import { DarkTheme, DefaultTheme, type Theme } from 'expo-router/react-navigation';
+
+export const THEME = {
+  light: {
+    background: '#f8fafc',
+    foreground: '#0f172a',
+    card: '#ffffff',
+    cardForeground: '#0f172a',
+    popover: '#ffffff',
+    popoverForeground: '#0f172a',
+    primary: '#047857',
+    primaryForeground: '#ffffff',
+    secondary: '#eff6ff',
+    secondaryForeground: '#0f172a',
+    muted: '#f1f5f9',
+    mutedForeground: '#64748b',
+    accent: '#ecfdf5',
+    accentForeground: '#047857',
+    destructive: '#dc2626',
+    warning: '#d97706',
+    border: '#e2e8f0',
+    input: '#e2e8f0',
+    ring: '#047857',
+    radius: '0.75rem',
+  },
+  dark: {
+    background: '#080c10',
+    foreground: '#f3f6fa',
+    card: '#0e141d',
+    cardForeground: '#f3f6fa',
+    popover: '#0e141d',
+    popoverForeground: '#f3f6fa',
+    primary: '#00d494',
+    primaryForeground: '#041f16',
+    secondary: '#161f2c',
+    secondaryForeground: '#f3f6fa',
+    muted: '#161f2c',
+    mutedForeground: '#7c8ea1',
+    accent: '#1a2332',
+    accentForeground: '#f3f6fa',
+    destructive: '#f43f5e',
+    warning: '#f59e0b',
+    border: '#1a2332',
+    input: '#1a2332',
+    ring: '#00d494',
+    radius: '0.75rem',
+  },
+};
+
+export const NAV_THEME: Record<'light' | 'dark', Theme> = {
+  light: {
+    ...DefaultTheme,
+    colors: {
+      background: THEME.light.background,
+      border: THEME.light.border,
+      card: THEME.light.card,
+      notification: THEME.light.destructive,
+      primary: THEME.light.primary,
+      text: THEME.light.foreground,
+    },
+  },
+  dark: {
+    ...DarkTheme,
+    colors: {
+      background: THEME.dark.background,
+      border: THEME.dark.border,
+      card: THEME.dark.card,
+      notification: THEME.dark.destructive,
+      primary: THEME.dark.primary,
+      text: THEME.dark.foreground,
+    },
+  },
+};
