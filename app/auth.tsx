@@ -350,6 +350,8 @@ export default function AuthScreen() {
                         }}
                         autoCapitalize="words"
                         editable={!loading}
+                        accessibilityLabelledBy="auth-name"
+                        accessibilityLabel="Nome completo"
                         style={{ color: textColor }}
                         className="ml-2.5 flex-1 text-sm"
                       />
@@ -374,6 +376,8 @@ export default function AuthScreen() {
                           if (error) setError(null);
                         }}
                         editable={!loading}
+                        accessibilityLabelledBy="auth-email"
+                        accessibilityLabel="E-mail"
                         style={{ color: textColor }}
                         className="ml-2.5 flex-1 text-sm"
                       />
@@ -405,6 +409,8 @@ export default function AuthScreen() {
                           if (error) setError(null);
                         }}
                         editable={!loading}
+                        accessibilityLabelledBy="auth-password"
+                        accessibilityLabel="Senha"
                         style={{ color: textColor }}
                         className="ml-2.5 flex-1 text-sm"
                       />
@@ -443,11 +449,15 @@ export default function AuthScreen() {
                             if (error) setError(null);
                           }}
                           editable={!loading}
+                          accessibilityLabelledBy="reg-password"
+                          accessibilityLabel="Senha"
                           style={{ color: textColor }}
                           className="ml-2.5 flex-1 text-sm"
                         />
                         <Pressable
                           onPress={() => setShowPassword(!showPassword)}
+                          hitSlop={8}
+                          accessibilityRole="button"
                           accessibilityLabel={showPassword ? 'Ocultar senha' : 'Ver senha'}
                           className="p-1.5">
                           {showPassword ? (
@@ -473,6 +483,8 @@ export default function AuthScreen() {
                             if (error) setError(null);
                           }}
                           editable={!loading}
+                          accessibilityLabelledBy="reg-confirm-password"
+                          accessibilityLabel="Confirmar Senha"
                           style={{ color: textColor }}
                           className="ml-2.5 flex-1 text-sm"
                         />
@@ -553,6 +565,7 @@ export default function AuthScreen() {
                         value={otpCode}
                         onChangeText={setOtpCode}
                         editable={!loading}
+                        accessibilityLabel="Código de verificação de 6 dígitos"
                         style={{ color: textColor, letterSpacing: 6 }}
                         className="ml-2.5 flex-1 text-center text-lg font-bold"
                       />

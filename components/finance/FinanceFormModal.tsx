@@ -519,7 +519,10 @@ export function FinanceFormModal({
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollView className="max-h-[420px]" showsVerticalScrollIndicator={false}>
+        <ScrollView
+          className="max-h-[420px]"
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}>
           <View className="gap-3.5 py-2">
             {error ? (
               <View className="rounded-lg border border-destructive/40 bg-destructive/10 p-3">
