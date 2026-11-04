@@ -166,7 +166,7 @@ export default function BudgetsScreen() {
 
       <ScrollView
         className="flex-1"
-        contentContainerClassName="gap-4 p-4 pb-12"
+        contentContainerClassName="w-full max-w-3xl self-center gap-4 p-4 pb-12"
         showsVerticalScrollIndicator={false}>
         {feedback ? (
           <View className="flex-row items-center justify-between rounded-lg border border-primary/40 bg-primary/15 px-3 py-2">
@@ -489,7 +489,8 @@ export default function BudgetsScreen() {
                               variant="ghost"
                               className="h-8 w-8"
                               hitSlop={6}
-                              onPress={() => void handleCopyGoalNextMonth(g)}>
+                              onPress={() => void handleCopyGoalNextMonth(g)}
+                              accessibilityLabel={`Copiar meta de ${catName} para próximo mês`}>
                               <Icon as={CopyIcon} className="size-3.5 text-muted-foreground" />
                             </Button>
                             <Button
@@ -497,7 +498,8 @@ export default function BudgetsScreen() {
                               variant="ghost"
                               className="h-8 w-8"
                               hitSlop={6}
-                              onPress={() => handleEditGoal(g)}>
+                              onPress={() => handleEditGoal(g)}
+                              accessibilityLabel={`Editar meta de ${catName}`}>
                               <Icon as={PencilIcon} className="size-3.5 text-muted-foreground" />
                             </Button>
                             <Button
@@ -511,7 +513,8 @@ export default function BudgetsScreen() {
                                   id: g.id,
                                   label: `a meta de ${catName}`,
                                 })
-                              }>
+                              }
+                              accessibilityLabel={`Excluir meta de ${catName}`}>
                               <Icon as={Trash2Icon} className="size-3.5 text-destructive" />
                             </Button>
                           </View>
@@ -595,7 +598,8 @@ export default function BudgetsScreen() {
                               id: cat.id,
                               label: `a categoria "${cat.name}"`,
                             })
-                          }>
+                          }
+                          accessibilityLabel={`Excluir categoria ${cat.name}`}>
                           <Icon as={Trash2Icon} className="size-3.5 text-destructive" />
                         </Button>
                       ) : null}
@@ -635,14 +639,15 @@ export default function BudgetsScreen() {
                       size="icon"
                       variant="ghost"
                       className="h-7 w-7"
-                      hitSlop={6}
+                      hitSlop={8}
                       onPress={() =>
                         setPendingDelete({
                           kind: 'tag',
                           id: tag.id,
                           label: `a etiqueta "${tag.name}"`,
                         })
-                      }>
+                      }
+                      accessibilityLabel={`Excluir etiqueta ${tag.name}`}>
                       <Icon as={Trash2Icon} className="size-3.5 text-muted-foreground" />
                     </Button>
                   </View>

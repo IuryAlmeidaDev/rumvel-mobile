@@ -260,7 +260,7 @@ export default function AuthScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}>
           {/* Top Bar matching AuthPage header */}
-          <View className="mb-3 flex-row items-center justify-end gap-2">
+          <View className="mb-3 w-full max-w-lg flex-row items-center justify-end gap-2 self-center">
             {mode !== 'login' ? (
               <Button
                 variant="ghost"
@@ -286,7 +286,7 @@ export default function AuthScreen() {
           </View>
 
           {/* Main Login Card (Form + RumvelShowcase stacked on mobile, matching web AuthPage) */}
-          <Card className="w-full overflow-hidden rounded-[14px] border-border/80 bg-card p-0 shadow-lg">
+          <Card className="w-full max-w-lg self-center overflow-hidden rounded-[14px] border-border/80 bg-card p-0 shadow-lg">
             {/* Left / Top Column: Auth Form */}
             <View className="p-6">
               {/* Official Honey-Badger Emblem Logo */}
@@ -410,6 +410,8 @@ export default function AuthScreen() {
                       />
                       <Pressable
                         onPress={() => setShowPassword(!showPassword)}
+                        hitSlop={8}
+                        accessibilityRole="button"
                         accessibilityLabel={showPassword ? 'Ocultar senha' : 'Ver senha'}
                         className="p-1.5">
                         {showPassword ? (
@@ -476,6 +478,8 @@ export default function AuthScreen() {
                         />
                         <Pressable
                           onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                          hitSlop={8}
+                          accessibilityRole="button"
                           accessibilityLabel={
                             showConfirmPassword
                               ? 'Ocultar confirmação de senha'

@@ -88,7 +88,7 @@ export function AppHeader({
                 variant="ghost"
                 size="icon"
                 className="h-7 w-7"
-                hitSlop={6}
+                hitSlop={8}
                 onPress={prevMonth}
                 accessibilityLabel="Mês anterior">
                 <Icon as={ChevronLeftIcon} className="size-3.5 text-muted-foreground" />
@@ -102,7 +102,7 @@ export function AppHeader({
                 variant="ghost"
                 size="icon"
                 className="h-7 w-7"
-                hitSlop={6}
+                hitSlop={8}
                 onPress={nextMonth}
                 accessibilityLabel="Próximo mês">
                 <Icon as={ChevronRightIcon} className="size-3.5 text-muted-foreground" />
@@ -177,6 +177,9 @@ export function AppHeader({
           {userName ? (
             <Pressable
               onPress={() => router.push('/(tabs)/accounts')}
+              hitSlop={6}
+              accessibilityRole="button"
+              accessibilityLabel={`Abrir contas e perfil de ${userName}`}
               className="rounded-full border border-border bg-background/70 px-2.5 py-1 active:opacity-80">
               <Text className="text-[11px] font-medium text-muted-foreground">{userName}</Text>
             </Pressable>

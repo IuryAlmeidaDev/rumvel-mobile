@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { FlatList, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ArrowRightLeftIcon,
@@ -27,10 +27,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
-  Card,
-  CardContent,
   CardDescription,
-  CardHeader,
   CardTitle,
 } from '@/components/ui/card';
 import { Icon } from '@/components/ui/icon';
@@ -286,215 +283,224 @@ export default function TransactionsScreen() {
         ) : null}
       </View>
 
-      <ScrollView
+      <FlatList
         className="flex-1"
-        contentContainerClassName="gap-3 p-4 pb-10"
-        showsVerticalScrollIndicator={false}>
-        <Card className="border-border bg-card">
-          <CardHeader className="pb-2">
+        contentContainerClassName="w-full max-w-3xl self-center p-4 pb-10"
+        showsVerticalScrollIndicator={false}
+        data={filteredTransactions}
+        keyExtractor={(item) => item.id}
+        initialNumToRender={12}
+        maxToRenderPerBatch={12}
+        windowSize={7}
+        ListHeaderComponent={
+          <View
+            className={`rounded-t-xl border-x border-t border-border bg-card px-4 pb-2 pt-4 ${
+              filteredTransactions.length === 0 ? 'rounded-b-xl border-b' : ''
+            }`}>
             <CardTitle className="text-base font-bold text-foreground">
               Todos os lançamentos
             </CardTitle>
-            <CardDescription className="text-xs text-muted-foreground">
+            <CardDescription className="mt-1 text-xs text-muted-foreground">
               {filteredTransactions.length}{' '}
               {filteredTransactions.length === 1
                 ? 'lançamento encontrado no período.'
                 : 'lançamentos encontrados no período.'}
             </CardDescription>
-          </CardHeader>
+          </View>
+        }
+        ListEmptyComponent={
+          <View className="-mt-1 items-center justify-center gap-2 rounded-b-xl border-x border-b border-border bg-card px-4 py-8">
+            <Icon as={SearchIcon} className="size-6 text-muted-foreground" />
+            <Text className="text-sm font-bold text-foreground">
+              Nenhum lançamento encontrado
+            </Text>
+            <Text className="text-center text-xs text-muted-foreground">
+              {hasActiveFilters
+                ? 'Tente outra busca ou altere os filtros selecionados.'
+                : 'Adicione uma conta e registre seu primeiro lançamento.'}
+            </Text>
+            {hasActiveFilters ? (
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-2 flex-row items-center gap-1.5"
+                onPress={clearFilters}>
+                <Icon as={XIcon} className="size-3.5 text-foreground" />
+                <Text className="text-xs">Limpar filtros</Text>
+              </Button>
+            ) : null}
+          </View>
+        }
+        renderItem={({ item: tx, index: idx }) => {
+          const typeUpper = tx.type.toUpperCase();
+          const isIncome = typeUpper === 'INCOME';
+          const isExpense = typeUpper === 'EXPENSE';
+          const isTransfer = typeUpper === 'TRANSFER';
+          const isOverdue = !tx.paid && tx.date.slice(0, 10) < todayStr;
+          const cat = tx.categoryId ? categoryMap.get(tx.categoryId) : undefined;
+          const parentCat = cat?.parentId ? categoryMap.get(cat.parentId) : undefined;
+          const acc = accountMap.get(tx.accountId);
+          const accName = acc?.name ?? 'Conta';
+          const destAccName = tx.destinationAccountId
+            ? accountMap.get(tx.destinationAccountId)?.name
+            : undefined;
+          const isLast = idx === filteredTransactions.length - 1;
 
-          <CardContent className="gap-0 px-4 pt-1">
-            {filteredTransactions.length === 0 ? (
-              <View className="items-center justify-center gap-2 py-8">
-                <Icon as={SearchIcon} className="size-6 text-muted-foreground" />
-                <Text className="text-sm font-bold text-foreground">
-                  Nenhum lançamento encontrado
-                </Text>
-                <Text className="text-center text-xs text-muted-foreground">
-                  {hasActiveFilters
-                    ? 'Tente outra busca ou altere os filtros selecionados.'
-                    : 'Adicione uma conta e registre seu primeiro lançamento.'}
-                </Text>
-                {hasActiveFilters ? (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="mt-2 flex-row items-center gap-1.5"
-                    onPress={clearFilters}>
-                    <Icon as={XIcon} className="size-3.5 text-foreground" />
-                    <Text className="text-xs">Limpar filtros</Text>
-                  </Button>
-                ) : null}
-              </View>
-            ) : (
-              filteredTransactions.map((tx, idx) => {
-                const typeUpper = tx.type.toUpperCase();
-                const isIncome = typeUpper === 'INCOME';
-                const isExpense = typeUpper === 'EXPENSE';
-                const isTransfer = typeUpper === 'TRANSFER';
-                const isOverdue = !tx.paid && tx.date.slice(0, 10) < todayStr;
-                const cat = tx.categoryId ? categoryMap.get(tx.categoryId) : undefined;
-                const parentCat = cat?.parentId ? categoryMap.get(cat.parentId) : undefined;
-                const acc = accountMap.get(tx.accountId);
-                const accName = acc?.name ?? 'Conta';
-                const destAccName = tx.destinationAccountId
-                  ? accountMap.get(tx.destinationAccountId)?.name
-                  : undefined;
-
-                return (
-                  <View
-                    key={tx.id}
-                    className={`flex-row items-center justify-between gap-3 py-3.5 ${
-                      idx > 0 ? 'border-t border-border/60' : ''
-                    }`}>
-                    {/* Left: CategoryBadge + Description & Account/Date */}
-                    <View className="flex-row items-center gap-3 flex-1">
-                      {isTransfer ? (
-                        <View className="h-9 w-9 items-center justify-center rounded-xl border border-sky-500/30 bg-sky-500/15">
-                          <Icon
-                            as={ArrowRightLeftIcon}
-                            className="size-4 text-sky-600 dark:text-sky-400"
-                          />
-                        </View>
-                      ) : (
-                        <CategoryBadge
-                          name={cat?.name}
-                          parentName={parentCat?.name}
-                          type={tx.type}
-                          iconSlug={cat?.iconSlug}
-                          color={cat?.color}
-                          size="md"
-                        />
-                      )}
-
-                      <View className="flex-1">
-                        <Text className="text-xs font-semibold text-foreground" numberOfLines={1}>
-                          {tx.description || 'Sem descrição'}
-                        </Text>
-
-                        <View className="mt-1 flex-row flex-wrap items-center gap-1.5">
-                          <BankBadge name={accName} type={acc?.type} size="xs" />
-                          <Text className="text-[11px] text-muted-foreground" numberOfLines={1}>
-                            {isTransfer ? `${accName} → ${destAccName ?? 'Destino'}` : accName}
-                          </Text>
-                          <Text className="text-[11px] text-muted-foreground">•</Text>
-                          <Text style={TABULAR_NUMS} className="text-[11px] text-muted-foreground">
-                            {formatDateSafe(tx.date)}
-                          </Text>
-                        </View>
-
-                        {(tx.installmentNumber && tx.totalInstallments) ||
-                        tx.isRecurring ||
-                        tx.recurring ||
-                        tx.recurringId ? (
-                          <View className="mt-1 flex-row items-center gap-1.5">
-                            {tx.installmentNumber && tx.totalInstallments ? (
-                              <Badge variant="secondary" className="h-4 px-1.5 py-0">
-                                <Text style={TABULAR_NUMS} className="text-[10px] font-bold">
-                                  {tx.installmentNumber}/{tx.totalInstallments}
-                                </Text>
-                              </Badge>
-                            ) : null}
-                            {tx.isRecurring || tx.recurring || tx.recurringId ? (
-                              <Badge variant="secondary" className="h-4 px-1.5 py-0">
-                                <Icon as={RepeatIcon} className="mr-1 size-2.5 text-primary" />
-                                <Text className="text-[10px] font-bold text-primary">
-                                  Recorrente
-                                </Text>
-                              </Badge>
-                            ) : null}
-                          </View>
-                        ) : null}
-                      </View>
-                    </View>
-
-                    {/* Right: Amount + Status Badge + Actions */}
-                    <View className="items-end">
-                      <Text
-                        style={TABULAR_NUMS}
-                        className={`text-xs font-semibold ${
-                          isIncome
-                            ? 'text-primary'
-                            : isExpense
-                              ? 'text-destructive'
-                              : 'text-foreground'
-                        }`}>
-                        {isExpense ? '− ' : isIncome ? '+ ' : ''}
-                        {formatBrlCurrency(Math.abs(tx.amount), privateMode)}
-                      </Text>
-
-                      <View className="mt-1.5 flex-row items-center gap-1.5">
-                        {/* Status Pill matching web getTransactionStatusConfig */}
-                        <View
-                          className={`flex-row items-center gap-1 rounded-full border px-2 py-0.5 ${
-                            tx.paid
-                              ? 'border-primary/25 bg-primary/10'
-                              : isOverdue
-                                ? 'border-destructive/30 bg-destructive/10'
-                                : 'border-border/80 bg-background'
-                          }`}>
-                          <View
-                            className={`h-1.5 w-1.5 rounded-full ${
-                              tx.paid
-                                ? 'bg-primary'
-                                : isOverdue
-                                  ? 'bg-destructive'
-                                  : 'bg-amber-500'
-                            }`}
-                          />
-                          <Text
-                            className={`text-[10px] font-bold uppercase ${
-                              tx.paid
-                                ? 'text-primary'
-                                : isOverdue
-                                  ? 'text-destructive'
-                                  : 'text-muted-foreground'
-                            }`}>
-                            {tx.paid ? 'Pago' : isOverdue ? 'Atrasado' : 'Pendente'}
-                          </Text>
-                        </View>
-
-                        {!isTransfer ? (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 px-2"
-                            hitSlop={6}
-                            onPress={() => void optimisticTogglePay(tx, !tx.paid)}>
-                            <Text className="text-[10px] font-semibold text-foreground">
-                              {tx.paid ? 'Desfazer' : 'Baixar'}
-                            </Text>
-                          </Button>
-                        ) : null}
-
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-8 w-8"
-                          hitSlop={6}
-                          onPress={() => handleOpenEdit(tx)}
-                          accessibilityLabel={`Editar lançamento ${tx.description}`}>
-                          <Icon as={PencilIcon} className="size-3.5 text-muted-foreground" />
-                        </Button>
-
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-8 w-8"
-                          hitSlop={6}
-                          onPress={() => setDeleteTarget(tx)}
-                          accessibilityLabel={`Excluir lançamento ${tx.description}`}>
-                          <Icon as={Trash2Icon} className="size-3.5 text-destructive" />
-                        </Button>
-                      </View>
-                    </View>
+          return (
+            <View
+              className={`flex-row items-center justify-between gap-3 border-x border-border bg-card px-4 py-3.5 ${
+                idx > 0 ? 'border-t border-t-border/60' : ''
+              } ${isLast ? 'rounded-b-xl border-b pb-4' : ''}`}>
+              {/* Left: CategoryBadge + Description & Account/Date */}
+              <View className="flex-1 flex-row items-center gap-3">
+                {isTransfer ? (
+                  <View className="h-9 w-9 items-center justify-center rounded-xl border border-sky-500/30 bg-sky-500/15">
+                    <Icon
+                      as={ArrowRightLeftIcon}
+                      className="size-4 text-sky-600 dark:text-sky-400"
+                    />
                   </View>
-                );
-              })
-            )}
-          </CardContent>
-        </Card>
-      </ScrollView>
+                ) : (
+                  <CategoryBadge
+                    name={cat?.name}
+                    parentName={parentCat?.name}
+                    type={tx.type}
+                    iconSlug={cat?.iconSlug}
+                    color={cat?.color}
+                    size="md"
+                  />
+                )}
+
+                <View className="flex-1">
+                  <Text className="text-xs font-semibold text-foreground" numberOfLines={1}>
+                    {tx.description || 'Sem descrição'}
+                  </Text>
+
+                  <View className="mt-1 flex-row flex-wrap items-center gap-1.5">
+                    <BankBadge name={accName} type={acc?.type} size="xs" />
+                    <Text className="text-[11px] text-muted-foreground" numberOfLines={1}>
+                      {isTransfer ? `${accName} → ${destAccName ?? 'Destino'}` : accName}
+                    </Text>
+                    <Text className="text-[11px] text-muted-foreground">•</Text>
+                    <Text style={TABULAR_NUMS} className="text-[11px] text-muted-foreground">
+                      {formatDateSafe(tx.date)}
+                    </Text>
+                  </View>
+
+                  {(tx.installmentNumber && tx.totalInstallments) ||
+                  tx.isRecurring ||
+                  tx.recurring ||
+                  tx.recurringId ? (
+                    <View className="mt-1 flex-row items-center gap-1.5">
+                      {tx.installmentNumber && tx.totalInstallments ? (
+                        <Badge variant="secondary" className="h-4 px-1.5 py-0">
+                          <Text style={TABULAR_NUMS} className="text-[10px] font-bold">
+                            {tx.installmentNumber}/{tx.totalInstallments}
+                          </Text>
+                        </Badge>
+                      ) : null}
+                      {tx.isRecurring || tx.recurring || tx.recurringId ? (
+                        <Badge variant="secondary" className="h-4 px-1.5 py-0">
+                          <Icon as={RepeatIcon} className="mr-1 size-2.5 text-primary" />
+                          <Text className="text-[10px] font-bold text-primary">
+                            Recorrente
+                          </Text>
+                        </Badge>
+                      ) : null}
+                    </View>
+                  ) : null}
+                </View>
+              </View>
+
+              {/* Right: Amount + Status Badge + Actions */}
+              <View className="items-end">
+                <Text
+                  style={TABULAR_NUMS}
+                  className={`text-xs font-semibold ${
+                    isIncome
+                      ? 'text-primary'
+                      : isExpense
+                        ? 'text-destructive'
+                        : 'text-foreground'
+                  }`}>
+                  {isExpense ? '− ' : isIncome ? '+ ' : ''}
+                  {formatBrlCurrency(Math.abs(tx.amount), privateMode)}
+                </Text>
+
+                <View className="mt-1.5 flex-row items-center gap-1.5">
+                  {/* Status Pill matching web getTransactionStatusConfig */}
+                  <View
+                    className={`flex-row items-center gap-1 rounded-full border px-2 py-0.5 ${
+                      tx.paid
+                        ? 'border-primary/25 bg-primary/10'
+                        : isOverdue
+                          ? 'border-destructive/30 bg-destructive/10'
+                          : 'border-border/80 bg-background'
+                    }`}>
+                    <View
+                      className={`h-1.5 w-1.5 rounded-full ${
+                        tx.paid
+                          ? 'bg-primary'
+                          : isOverdue
+                            ? 'bg-destructive'
+                            : 'bg-amber-500'
+                      }`}
+                    />
+                    <Text
+                      className={`text-[10px] font-bold uppercase ${
+                        tx.paid
+                          ? 'text-primary'
+                          : isOverdue
+                            ? 'text-destructive'
+                            : 'text-muted-foreground'
+                      }`}>
+                      {tx.paid ? 'Pago' : isOverdue ? 'Atrasado' : 'Pendente'}
+                    </Text>
+                  </View>
+
+                  {!isTransfer ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 px-2"
+                      hitSlop={6}
+                      accessibilityLabel={
+                        tx.paid
+                          ? `Desfazer baixa de ${tx.description}`
+                          : `Baixar lançamento ${tx.description}`
+                      }
+                      onPress={() => void optimisticTogglePay(tx, !tx.paid)}>
+                      <Text className="text-[10px] font-semibold text-foreground">
+                        {tx.paid ? 'Desfazer' : 'Baixar'}
+                      </Text>
+                    </Button>
+                  ) : null}
+
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8"
+                    hitSlop={6}
+                    onPress={() => handleOpenEdit(tx)}
+                    accessibilityLabel={`Editar lançamento ${tx.description}`}>
+                    <Icon as={PencilIcon} className="size-3.5 text-muted-foreground" />
+                  </Button>
+
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8"
+                    hitSlop={6}
+                    onPress={() => setDeleteTarget(tx)}
+                    accessibilityLabel={`Excluir lançamento ${tx.description}`}>
+                    <Icon as={Trash2Icon} className="size-3.5 text-destructive" />
+                  </Button>
+                </View>
+              </View>
+            </View>
+          );
+        }}
+      />
 
       <FinanceFormModal
         open={modalOpen}

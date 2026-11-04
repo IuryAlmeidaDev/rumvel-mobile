@@ -203,7 +203,7 @@ export default function AccountsScreen() {
 
       <ScrollView
         className="flex-1"
-        contentContainerClassName="gap-4 p-4 pb-12"
+        contentContainerClassName="w-full max-w-3xl self-center gap-4 p-4 pb-12"
         showsVerticalScrollIndicator={false}>
         {/* Top Action Row */}
         <View className="flex-row items-center justify-between">
@@ -348,7 +348,8 @@ export default function AccountsScreen() {
               className="h-9 w-9"
               hitSlop={6}
               disabled={isLoadingMarket}
-              onPress={() => void refreshMarket(true)}>
+              onPress={() => void refreshMarket(true)}
+              accessibilityLabel="Atualizar taxas de mercado">
               <Icon as={RefreshCwIcon} className="size-3.5 text-primary" />
             </Button>
           </CardHeader>

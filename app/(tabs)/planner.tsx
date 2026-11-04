@@ -223,7 +223,7 @@ export default function PlannerScreen() {
 
       <ScrollView
         className="flex-1"
-        contentContainerClassName="gap-4 p-4 pb-12"
+        contentContainerClassName="w-full max-w-3xl self-center gap-4 p-4 pb-12"
         showsVerticalScrollIndicator={false}>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="w-full flex-row border border-border bg-card">

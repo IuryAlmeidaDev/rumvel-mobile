@@ -6,6 +6,7 @@ import Animated, {
   interpolate,
   useAnimatedStyle,
   useDerivedValue,
+  useReducedMotion,
   withSpring,
 } from 'react-native-reanimated';
 
@@ -61,15 +62,16 @@ function WebIndicator({ value, className, color }: IndicatorProps) {
 
 function NativeIndicator({ value, className, color }: IndicatorProps) {
   const progress = useDerivedValue(() => value ?? 0);
+  const reducedMotion = useReducedMotion();
 
   const indicator = useAnimatedStyle(() => {
+    const targetWidth: `${number}%` = `${interpolate(progress.value, [0, 100], [1, 100], Extrapolation.CLAMP)}%`;
     return {
-      width: withSpring(
-        `${interpolate(progress.value, [0, 100], [1, 100], Extrapolation.CLAMP)}%`,
-        { overshootClamping: true }
-      ),
+      width: reducedMotion
+        ? targetWidth
+        : withSpring(targetWidth, { overshootClamping: true }),
     };
-  }, [value]);
+  }, [value, reducedMotion]);
 
   if (Platform.OS === 'web') {
     return null;

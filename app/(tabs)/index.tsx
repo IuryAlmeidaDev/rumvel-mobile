@@ -211,7 +211,7 @@ export default function DashboardScreen() {
 
       <ScrollView
         className="flex-1"
-        contentContainerClassName="gap-4 p-4 pb-10"
+        contentContainerClassName="w-full max-w-3xl self-center gap-4 p-4 pb-10"
         showsVerticalScrollIndicator={false}>
         {financeError ? (
           <Card className="border-destructive/50 bg-destructive/10">
