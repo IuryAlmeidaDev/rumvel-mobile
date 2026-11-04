@@ -48,6 +48,7 @@ import {
   deleteGoal,
   saveFinance,
   type FinanceBudget,
+  type FinanceCategory,
   type FinanceGoal,
 } from '@/lib/financeApi';
 import { formatBrlCurrency, TABULAR_NUMS } from '@/lib/formatters';
@@ -66,6 +67,7 @@ export default function BudgetsScreen() {
   const [modalKind, setModalKind] = useState<FinanceFormKind>('budget');
   const [editBudget, setEditBudget] = useState<FinanceBudget | null>(null);
   const [editGoal, setEditGoal] = useState<FinanceGoal | null>(null);
+  const [editCategory, setEditCategory] = useState<FinanceCategory | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -106,6 +108,7 @@ export default function BudgetsScreen() {
   const handleOpenNew = (kind: FinanceFormKind) => {
     setEditBudget(null);
     setEditGoal(null);
+    setEditCategory(null);
     setModalKind(kind);
     setModalOpen(true);
   };
@@ -113,6 +116,7 @@ export default function BudgetsScreen() {
   const handleEditBudget = (b: FinanceBudget) => {
     setEditBudget(b);
     setEditGoal(null);
+    setEditCategory(null);
     setModalKind('budget');
     setModalOpen(true);
   };
@@ -120,7 +124,16 @@ export default function BudgetsScreen() {
   const handleEditGoal = (g: FinanceGoal) => {
     setEditGoal(g);
     setEditBudget(null);
+    setEditCategory(null);
     setModalKind('goal');
+    setModalOpen(true);
+  };
+
+  const handleEditCategory = (cat: FinanceCategory) => {
+    setEditCategory(cat);
+    setEditBudget(null);
+    setEditGoal(null);
+    setModalKind('category');
     setModalOpen(true);
   };
 
@@ -179,6 +192,7 @@ export default function BudgetsScreen() {
       <ScrollView
         className="flex-1"
         contentContainerClassName="w-full max-w-3xl self-center gap-4 p-4 pb-12"
+        keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
         {feedback ? (
           <View className="flex-row items-center justify-between rounded-lg border border-primary/40 bg-primary/15 px-3 py-2">
@@ -599,21 +613,32 @@ export default function BudgetsScreen() {
                         </Badge>
                       </View>
                       {!cat.system ? (
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-8 w-8"
-                          hitSlop={6}
-                          onPress={() =>
-                            setPendingDelete({
-                              kind: 'category',
-                              id: cat.id,
-                              label: `a categoria "${cat.name}"`,
-                            })
-                          }
-                          accessibilityLabel={`Excluir categoria ${cat.name}`}>
-                          <Icon as={Trash2Icon} className="size-3.5 text-destructive" />
-                        </Button>
+                        <View className="flex-row items-center gap-1">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8"
+                            hitSlop={6}
+                            onPress={() => handleEditCategory(cat)}
+                            accessibilityLabel={`Editar categoria ${cat.name}`}>
+                            <Icon as={PencilIcon} className="size-3.5 text-muted-foreground" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8"
+                            hitSlop={6}
+                            onPress={() =>
+                              setPendingDelete({
+                                kind: 'category',
+                                id: cat.id,
+                                label: `a categoria "${cat.name}"`,
+                              })
+                            }
+                            accessibilityLabel={`Excluir categoria ${cat.name}`}>
+                            <Icon as={Trash2Icon} className="size-3.5 text-destructive" />
+                          </Button>
+                        </View>
                       ) : null}
                     </View>
                   );
@@ -679,6 +704,7 @@ export default function BudgetsScreen() {
         categories={categories}
         editBudget={editBudget}
         editGoal={editGoal}
+        editCategory={editCategory}
         onSuccess={refreshFinance}
       />
 

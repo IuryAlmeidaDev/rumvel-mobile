@@ -240,6 +240,7 @@ export default function AccountsScreen() {
       <ScrollView
         className="flex-1"
         contentContainerClassName="w-full max-w-3xl self-center gap-4 p-4 pb-12"
+        keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
         {feedback ? (
           <View className="flex-row items-center justify-between rounded-lg border border-primary/40 bg-primary/15 px-3 py-2">

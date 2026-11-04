@@ -259,6 +259,7 @@ export default function PlannerScreen() {
       <ScrollView
         className="flex-1"
         contentContainerClassName="w-full max-w-3xl self-center gap-4 p-4 pb-12"
+        keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="w-full flex-row border border-border bg-card">
@@ -326,6 +327,7 @@ export default function PlannerScreen() {
                         size="sm"
                         variant={employmentType === opt.value ? 'default' : 'outline'}
                         className="h-8 px-2.5"
+                        accessibilityState={{ selected: employmentType === opt.value }}
                         onPress={() => setEmploymentType(opt.value)}>
                         <Text className="text-xs">{opt.label}</Text>
                       </Button>
@@ -378,6 +380,7 @@ export default function PlannerScreen() {
                         size="sm"
                         variant={housingType === opt.value ? 'default' : 'outline'}
                         className="h-8 px-2.5"
+                        accessibilityState={{ selected: housingType === opt.value }}
                         onPress={() => setHousingType(opt.value)}>
                         <Text className="text-xs">{opt.label}</Text>
                       </Button>
@@ -482,6 +485,7 @@ export default function PlannerScreen() {
                         size="sm"
                         variant={debtLevel === d.key ? 'default' : 'outline'}
                         className="h-8 flex-1 px-2"
+                        accessibilityState={{ selected: debtLevel === d.key }}
                         onPress={() => setDebtLevel(d.key)}>
                         <Text className="text-[11px] font-semibold">{d.label}</Text>
                       </Button>
@@ -516,6 +520,7 @@ export default function PlannerScreen() {
                         size="sm"
                         variant={investmentAmbition === inv.key ? 'default' : 'outline'}
                         className="h-8 flex-1"
+                        accessibilityState={{ selected: investmentAmbition === inv.key }}
                         onPress={() => setInvestmentAmbition(inv.key)}>
                         <Text className="text-xs">{inv.label}</Text>
                       </Button>
@@ -530,6 +535,7 @@ export default function PlannerScreen() {
                       size="sm"
                       variant={planningMode === 'BALANCED' ? 'default' : 'outline'}
                       className="flex-1"
+                      accessibilityState={{ selected: planningMode === 'BALANCED' }}
                       onPress={() => setPlanningMode('BALANCED')}>
                       <Text className="text-xs font-bold">Equilíbrio & Crescimento</Text>
                     </Button>
@@ -537,6 +543,7 @@ export default function PlannerScreen() {
                       size="sm"
                       variant={planningMode === 'DEBT_PAYOFF' ? 'destructive' : 'outline'}
                       className="flex-1"
+                      accessibilityState={{ selected: planningMode === 'DEBT_PAYOFF' }}
                       onPress={() => setPlanningMode('DEBT_PAYOFF')}>
                       <Text className="text-xs font-bold">Quitação de Dívidas</Text>
                     </Button>

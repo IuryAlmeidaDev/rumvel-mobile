@@ -123,6 +123,7 @@ export interface FinanceFormModalProps {
   editAccount?: FinanceAccount | null;
   editBudget?: FinanceBudget | null;
   editGoal?: FinanceGoal | null;
+  editCategory?: FinanceCategory | null;
   onSuccess: () => Promise<void> | void;
 }
 
@@ -145,6 +146,7 @@ export function FinanceFormModal({
   editAccount,
   editBudget,
   editGoal,
+  editCategory,
   onSuccess,
 }: FinanceFormModalProps) {
   const { privateMode, setMonth } = useApp();
@@ -271,6 +273,13 @@ export function FinanceFormModal({
         setTargetCategoryId(incomeCats[0]?.id ?? '');
         setTargetAmountInput('');
       }
+    } else if (kind === 'category' && editCategory) {
+      setItemName(editCategory.name);
+      setCategoryType(
+        editCategory.type.toUpperCase() === 'INCOME' ? 'INCOME' : 'EXPENSE'
+      );
+      setSelectedColor(editCategory.color || PRESET_COLORS[0]);
+      setSelectedIconSlug(editCategory.iconSlug || 'utensils');
     } else {
       setItemName('');
       setCategoryType('EXPENSE');
@@ -285,6 +294,7 @@ export function FinanceFormModal({
     editAccount,
     editBudget,
     editGoal,
+    editCategory,
     activeAccounts,
     categories,
   ]);
@@ -463,12 +473,25 @@ export function FinanceFormModal({
         if (!itemName.trim()) {
           throw new Error('Informe o nome da categoria.');
         }
-        await saveFinance('/categories', {
-          name: itemName.trim(),
-          type: categoryType,
-          color: selectedColor,
-          iconSlug: selectedIconSlug,
-        });
+        if (editCategory) {
+          await saveFinance(
+            `/categories/${editCategory.id}`,
+            {
+              name: itemName.trim(),
+              type: categoryType,
+              color: selectedColor,
+              iconSlug: selectedIconSlug,
+            },
+            'PUT'
+          );
+        } else {
+          await saveFinance('/categories', {
+            name: itemName.trim(),
+            type: categoryType,
+            color: selectedColor,
+            iconSlug: selectedIconSlug,
+          });
+        }
       } else if (kind === 'tag') {
         if (!itemName.trim()) {
           throw new Error('Informe o nome da etiqueta.');
@@ -506,7 +529,9 @@ export function FinanceFormModal({
               ? 'Editar meta de receita'
               : 'Nova meta de receita'
             : kind === 'category'
-              ? 'Nova categoria'
+              ? editCategory
+                ? 'Editar categoria'
+                : 'Nova categoria'
               : 'Nova etiqueta';
 
   return (
@@ -715,6 +740,7 @@ export function FinanceFormModal({
                             variant={recurrenceMode === m.key ? 'secondary' : 'outline'}
                             size="sm"
                             className="h-8 flex-1 px-2"
+                            accessibilityState={{ selected: recurrenceMode === m.key }}
                             onPress={() => setRecurrenceMode(m.key)}>
                             <Text className="text-[11px] font-semibold">{m.label}</Text>
                           </Button>
@@ -750,6 +776,7 @@ export function FinanceFormModal({
                               variant={frequency === f.key ? 'default' : 'outline'}
                               size="sm"
                               className="h-8 flex-1"
+                              accessibilityState={{ selected: frequency === f.key }}
                               onPress={() => setFrequency(f.key)}>
                               <Text className="text-xs">{f.label}</Text>
                             </Button>
@@ -801,6 +828,7 @@ export function FinanceFormModal({
                         variant={accountType === t.value ? 'default' : 'outline'}
                         size="sm"
                         className="h-8 px-2.5"
+                        accessibilityState={{ selected: accountType === t.value }}
                         onPress={() => setAccountType(t.value)}>
                         <Text className="text-xs">{t.label}</Text>
                       </Button>
@@ -851,6 +879,7 @@ export function FinanceFormModal({
                           variant={active ? 'default' : 'outline'}
                           size="sm"
                           className="h-8 flex-row items-center gap-1.5 px-2.5"
+                          accessibilityState={{ selected: active }}
                           onPress={() => setTargetCategoryId(cat.id)}>
                           <CategoryBadge
                             name={cat.name}
@@ -904,6 +933,7 @@ export function FinanceFormModal({
                           variant={categoryType === 'EXPENSE' ? 'default' : 'outline'}
                           size="sm"
                           className="flex-1"
+                          accessibilityState={{ selected: categoryType === 'EXPENSE' }}
                           onPress={() => setCategoryType('EXPENSE')}>
                           <Text className="text-xs">Despesa</Text>
                         </Button>
@@ -911,6 +941,7 @@ export function FinanceFormModal({
                           variant={categoryType === 'INCOME' ? 'default' : 'outline'}
                           size="sm"
                           className="flex-1"
+                          accessibilityState={{ selected: categoryType === 'INCOME' }}
                           onPress={() => setCategoryType('INCOME')}>
                           <Text className="text-xs">Receita</Text>
                         </Button>
@@ -934,6 +965,7 @@ export function FinanceFormModal({
                           variant={selectedColor === hex ? 'default' : 'outline'}
                           size="sm"
                           className="h-8 px-2.5"
+                          accessibilityState={{ selected: selectedColor === hex }}
                           onPress={() => setSelectedColor(hex)}>
                           <View
                             style={{ backgroundColor: hex }}
