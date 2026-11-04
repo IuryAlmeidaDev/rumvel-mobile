@@ -1,5 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ScrollView, View } from 'react-native';
+import { BankBadge } from '@/components/finance/BankBadge';
+import {
+  CategoryBadge,
+  CategoryIconPicker,
+  PRESET_COLORS,
+} from '@/components/finance/CategoryBadge';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -54,23 +60,11 @@ export interface FinanceFormModalProps {
   onSuccess: () => Promise<void> | void;
 }
 
-const COLOR_SWATCHES = [
-  '#00d494',
-  '#38bdf8',
-  '#a855f7',
-  '#f59e0b',
-  '#f97316',
-  '#f43f5e',
-  '#14b8a6',
-  '#6366f1',
-];
-
 const ACCOUNT_TYPES = [
   { value: 'CHECKING', label: 'Conta Corrente' },
-  { value: 'SAVINGS', label: 'Poupança / Reserva' },
-  { value: 'INVESTMENT', label: 'Investimentos' },
-  { value: 'WALLET', label: 'Carteira Física' },
-  { value: 'CREDIT', label: 'Cartão / Crédito' },
+  { value: 'SAVINGS', label: 'Poupança' },
+  { value: 'CASH', label: 'Dinheiro / Carteira' },
+  { value: 'OTHER', label: 'Outra Conta' },
 ];
 
 export function FinanceFormModal({
@@ -118,7 +112,8 @@ export function FinanceFormModal({
   // Category / Tag state
   const [itemName, setItemName] = useState('');
   const [categoryType, setCategoryType] = useState<'EXPENSE' | 'INCOME'>('EXPENSE');
-  const [selectedColor, setSelectedColor] = useState(COLOR_SWATCHES[0]);
+  const [selectedColor, setSelectedColor] = useState(PRESET_COLORS[0]);
+  const [selectedIconSlug, setSelectedIconSlug] = useState<string>('utensils');
 
   const activeAccounts = useMemo(
     () => accounts.filter((a) => !a.archived),
@@ -212,7 +207,8 @@ export function FinanceFormModal({
     } else {
       setItemName('');
       setCategoryType('EXPENSE');
-      setSelectedColor(COLOR_SWATCHES[0]);
+      setSelectedColor(PRESET_COLORS[0]);
+      setSelectedIconSlug('utensils');
     }
   }, [
     open,
@@ -226,7 +222,6 @@ export function FinanceFormModal({
     categories,
   ]);
 
-  // Keep category synced when switching EXPENSE <-> INCOME
   useEffect(() => {
     if (kind === 'transaction' && !editTransaction && txType !== 'TRANSFER') {
       const valid = filteredCategories.some((c) => c.id === categoryId);
@@ -396,6 +391,7 @@ export function FinanceFormModal({
           name: itemName.trim(),
           type: categoryType,
           color: selectedColor,
+          iconSlug: selectedIconSlug,
         });
       } else if (kind === 'tag') {
         if (!itemName.trim()) {
@@ -419,23 +415,23 @@ export function FinanceFormModal({
   const modalTitle =
     kind === 'transaction'
       ? editTransaction
-        ? 'Editar Lançamento'
-        : 'Novo Lançamento'
+        ? 'Editar lançamento'
+        : 'Novo lançamento'
       : kind === 'account'
         ? editAccount
-          ? 'Editar Conta'
-          : 'Nova Conta Bancária'
+          ? 'Editar conta'
+          : 'Nova conta'
         : kind === 'budget'
           ? editBudget
-            ? 'Editar Orçamento Mensal'
-            : 'Novo Orçamento Mensal'
+            ? 'Editar orçamento'
+            : 'Novo orçamento'
           : kind === 'goal'
             ? editGoal
-              ? 'Editar Meta de Receita'
-              : 'Nova Meta de Receita'
+              ? 'Editar meta de receita'
+              : 'Nova meta de receita'
             : kind === 'category'
-              ? 'Nova Categoria'
-              : 'Nova Etiqueta (Tag)';
+              ? 'Nova categoria'
+              : 'Nova etiqueta';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -443,7 +439,7 @@ export function FinanceFormModal({
         <DialogHeader>
           <DialogTitle className="text-lg font-bold text-foreground">{modalTitle}</DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground">
-            Preencha os dados com precisão bancária.
+            Preencha os dados para organizar suas finanças.
           </DialogDescription>
         </DialogHeader>
 
@@ -515,7 +511,7 @@ export function FinanceFormModal({
 
                 <View className="gap-1.5">
                   <Label nativeID="tx-account">
-                    {txType === 'TRANSFER' ? 'Conta de Origem' : 'Conta Bancária'}
+                    {txType === 'TRANSFER' ? 'Conta de Origem' : 'Conta'}
                   </Label>
                   <View className="flex-row flex-wrap gap-1.5">
                     {activeAccounts.map((acc) => {
@@ -525,8 +521,9 @@ export function FinanceFormModal({
                           key={acc.id}
                           variant={active ? 'default' : 'outline'}
                           size="sm"
-                          className="h-8 px-2.5"
+                          className="h-8 flex-row items-center gap-1.5 px-2.5"
                           onPress={() => setAccountId(acc.id)}>
+                          <BankBadge name={acc.name} type={acc.type} size="xs" />
                           <Text className="text-xs">{acc.name}</Text>
                         </Button>
                       );
@@ -545,8 +542,9 @@ export function FinanceFormModal({
                             key={acc.id}
                             variant={active ? 'default' : 'outline'}
                             size="sm"
-                            className="h-8 px-2.5"
+                            className="h-8 flex-row items-center gap-1.5 px-2.5"
                             onPress={() => setDestinationAccountId(acc.id)}>
+                            <BankBadge name={acc.name} type={acc.type} size="xs" />
                             <Text className="text-xs">{acc.name}</Text>
                           </Button>
                         );
@@ -564,8 +562,15 @@ export function FinanceFormModal({
                             key={cat.id}
                             variant={active ? 'default' : 'outline'}
                             size="sm"
-                            className="h-8 px-2.5"
+                            className="h-8 flex-row items-center gap-1.5 px-2.5"
                             onPress={() => setCategoryId(cat.id)}>
+                            <CategoryBadge
+                              name={cat.name}
+                              type={cat.type}
+                              iconSlug={cat.iconSlug}
+                              color={cat.color}
+                              size="xs"
+                            />
                             <Text className="text-xs">{cat.name}</Text>
                           </Button>
                         );
@@ -591,7 +596,7 @@ export function FinanceFormModal({
                             key={m.key}
                             variant={recurrenceMode === m.key ? 'secondary' : 'outline'}
                             size="sm"
-                            className="flex-1 h-8 px-2"
+                            className="h-8 flex-1 px-2"
                             onPress={() => setRecurrenceMode(m.key)}>
                             <Text className="text-[11px] font-semibold">{m.label}</Text>
                           </Button>
@@ -626,7 +631,7 @@ export function FinanceFormModal({
                               key={f.key}
                               variant={frequency === f.key ? 'default' : 'outline'}
                               size="sm"
-                              className="flex-1 h-8"
+                              className="h-8 flex-1"
                               onPress={() => setFrequency(f.key)}>
                               <Text className="text-xs">{f.label}</Text>
                             </Button>
@@ -658,11 +663,15 @@ export function FinanceFormModal({
               <>
                 <View className="gap-1.5">
                   <Label nativeID="acc-name">Nome da Instituição / Conta</Label>
-                  <Input
-                    placeholder="Ex: Nubank, Itaú Personalité, Inter..."
-                    value={accountName}
-                    onChangeText={setAccountName}
-                  />
+                  <View className="flex-row items-center gap-2">
+                    <BankBadge name={accountName || 'Conta'} type={accountType} size="md" />
+                    <Input
+                      className="flex-1"
+                      placeholder="Ex: Nubank, Itaú, Inter, Bradesco..."
+                      value={accountName}
+                      onChangeText={setAccountName}
+                    />
+                  </View>
                 </View>
 
                 <View className="gap-1.5">
@@ -697,10 +706,10 @@ export function FinanceFormModal({
                 <View className="flex-row items-center justify-between rounded-lg border border-border bg-background p-3">
                   <View className="flex-1 pr-2">
                     <Text className="text-xs font-semibold text-foreground">
-                      Incluir no Saldo Consolidado
+                      Incluir no saldo total
                     </Text>
                     <Text className="text-[11px] text-muted-foreground">
-                      Soma esta conta no card principal do Dashboard.
+                      Soma esta conta no Saldo Realizado da Visão Geral.
                     </Text>
                   </View>
                   <Switch checked={includeInTotal} onCheckedChange={setIncludeInTotal} />
@@ -723,8 +732,15 @@ export function FinanceFormModal({
                           key={cat.id}
                           variant={active ? 'default' : 'outline'}
                           size="sm"
-                          className="h-8 px-2.5"
+                          className="h-8 flex-row items-center gap-1.5 px-2.5"
                           onPress={() => setTargetCategoryId(cat.id)}>
+                          <CategoryBadge
+                            name={cat.name}
+                            type={cat.type}
+                            iconSlug={cat.iconSlug}
+                            color={cat.color}
+                            size="xs"
+                          />
                           <Text className="text-xs">{cat.name}</Text>
                         </Button>
                       );
@@ -734,7 +750,7 @@ export function FinanceFormModal({
 
                 <View className="gap-1.5">
                   <Label nativeID="bg-amount">
-                    {kind === 'budget' ? 'Teto Mensal Planejado (R$)' : 'Meta de Receita (R$)'}
+                    {kind === 'budget' ? 'Limite mensal (R$)' : 'Meta de receita (R$)'}
                   </Label>
                   <Input
                     keyboardType="decimal-pad"
@@ -762,61 +778,72 @@ export function FinanceFormModal({
                 </View>
 
                 {kind === 'category' ? (
+                  <>
+                    <View className="gap-1.5">
+                      <Label nativeID="cat-type">Tipo</Label>
+                      <View className="flex-row gap-2">
+                        <Button
+                          variant={categoryType === 'EXPENSE' ? 'default' : 'outline'}
+                          size="sm"
+                          className="flex-1"
+                          onPress={() => setCategoryType('EXPENSE')}>
+                          <Text className="text-xs">Despesa</Text>
+                        </Button>
+                        <Button
+                          variant={categoryType === 'INCOME' ? 'default' : 'outline'}
+                          size="sm"
+                          className="flex-1"
+                          onPress={() => setCategoryType('INCOME')}>
+                          <Text className="text-xs">Receita</Text>
+                        </Button>
+                      </View>
+                    </View>
+
+                    <CategoryIconPicker
+                      selectedSlug={selectedIconSlug}
+                      selectedColor={selectedColor}
+                      onSelectIcon={setSelectedIconSlug}
+                      onSelectColor={setSelectedColor}
+                    />
+                  </>
+                ) : (
                   <View className="gap-1.5">
-                    <Label nativeID="cat-type">Natureza da Categoria</Label>
-                    <View className="flex-row gap-2">
-                      <Button
-                        variant={categoryType === 'EXPENSE' ? 'default' : 'outline'}
-                        size="sm"
-                        className="flex-1"
-                        onPress={() => setCategoryType('EXPENSE')}>
-                        <Text className="text-xs">Despesa</Text>
-                      </Button>
-                      <Button
-                        variant={categoryType === 'INCOME' ? 'default' : 'outline'}
-                        size="sm"
-                        className="flex-1"
-                        onPress={() => setCategoryType('INCOME')}>
-                        <Text className="text-xs">Receita</Text>
-                      </Button>
+                    <Label nativeID="item-color">Cor da etiqueta</Label>
+                    <View className="flex-row flex-wrap gap-2">
+                      {PRESET_COLORS.map((hex) => (
+                        <Button
+                          key={hex}
+                          variant={selectedColor === hex ? 'default' : 'outline'}
+                          size="sm"
+                          className="h-8 px-2.5"
+                          onPress={() => setSelectedColor(hex)}>
+                          <View
+                            style={{ backgroundColor: hex }}
+                            className="mr-1.5 h-3 w-3 rounded-full"
+                          />
+                          <Text className="text-[10px]">{hex}</Text>
+                        </Button>
+                      ))}
                     </View>
                   </View>
-                ) : null}
-
-                <View className="gap-1.5">
-                  <Label nativeID="item-color">Cor de Identificação</Label>
-                  <View className="flex-row flex-wrap gap-2">
-                    {COLOR_SWATCHES.map((hex) => (
-                      <Button
-                        key={hex}
-                        variant={selectedColor === hex ? 'default' : 'outline'}
-                        size="sm"
-                        className="h-8 px-2.5"
-                        onPress={() => setSelectedColor(hex)}>
-                        <View
-                          style={{ backgroundColor: hex }}
-                          className="mr-1.5 h-3 w-3 rounded-full"
-                        />
-                        <Text className="text-[10px]">{hex}</Text>
-                      </Button>
-                    ))}
-                  </View>
-                </View>
+                )}
               </>
             ) : null}
           </View>
         </ScrollView>
 
-        <DialogFooter className="mt-2 flex-row justify-end gap-2">
+        <DialogFooter className="flex-row justify-end gap-2 pt-3">
           <Button
             variant="outline"
             size="sm"
-            onPress={() => onOpenChange(false)}
-            disabled={submitting}>
+            disabled={submitting}
+            onPress={() => onOpenChange(false)}>
             <Text>Cancelar</Text>
           </Button>
-          <Button size="sm" onPress={() => void handleSubmit()} disabled={submitting}>
-            <Text>{submitting ? 'Salvando...' : 'Salvar'}</Text>
+          <Button size="sm" disabled={submitting} onPress={() => void handleSubmit()}>
+            <Text className="font-semibold text-primary-foreground">
+              {submitting ? 'Salvando...' : 'Salvar'}
+            </Text>
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -1,0 +1,347 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-04T12:10:00-04:00",
+  "title": "Design System: Rumvel Mobile",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "Emerald Vector",
+        "canonical": "#00d494",
+        "tonalRamp": [
+          "#032218",
+          "#043b29",
+          "#05583d",
+          "#047857",
+          "#00a372",
+          "#00d494",
+          "#5ce6b8",
+          "#d1fae5"
+        ]
+      },
+      "primary-light": {
+        "role": "primary",
+        "displayName": "Deep Forest Emerald",
+        "canonical": "#047857",
+        "tonalRamp": [
+          "#021f17",
+          "#033527",
+          "#04523c",
+          "#047857",
+          "#059669",
+          "#10b981",
+          "#6ee7b7",
+          "#ecfdf5"
+        ]
+      },
+      "primary-ink": {
+        "role": "neutral",
+        "displayName": "Primary Ink",
+        "canonical": "#041f16",
+        "tonalRamp": [
+          "#041f16",
+          "#073325",
+          "#0b4a36",
+          "#116349",
+          "#1b8060",
+          "#36a17e",
+          "#74c6ab",
+          "#d3f2e7"
+        ]
+      },
+      "obsidian-vault": {
+        "role": "neutral",
+        "displayName": "Obsidian Vault",
+        "canonical": "#080c10",
+        "tonalRamp": [
+          "#080c10",
+          "#0e141d",
+          "#161f2c",
+          "#1a2332",
+          "#2c3a4f",
+          "#52647c",
+          "#94a3b8",
+          "#f1f5f9"
+        ]
+      },
+      "slate-ledger": {
+        "role": "neutral",
+        "displayName": "Slate Ledger",
+        "canonical": "#0e141d",
+        "tonalRamp": [
+          "#080c10",
+          "#0e141d",
+          "#161f2c",
+          "#1e293b",
+          "#334155",
+          "#64748b",
+          "#cbd5e1",
+          "#f8fafc"
+        ]
+      },
+      "tactical-slate": {
+        "role": "secondary",
+        "displayName": "Tactical Slate",
+        "canonical": "#161f2c",
+        "tonalRamp": [
+          "#0b1017",
+          "#161f2c",
+          "#1f2c3f",
+          "#2b3d56",
+          "#3d5473",
+          "#5c789c",
+          "#9bb0ca",
+          "#e6edf5"
+        ]
+      },
+      "steel-hairline": {
+        "role": "neutral",
+        "displayName": "Steel Hairline",
+        "canonical": "#1a2332",
+        "tonalRamp": [
+          "#0d131b",
+          "#1a2332",
+          "#253247",
+          "#344663",
+          "#496085",
+          "#6b84ab",
+          "#a5b6d1",
+          "#e8eef7"
+        ]
+      },
+      "crisp-ivory": {
+        "role": "neutral",
+        "displayName": "Crisp Ivory",
+        "canonical": "#f3f6fa",
+        "tonalRamp": [
+          "#0f172a",
+          "#1e293b",
+          "#334155",
+          "#475569",
+          "#64748b",
+          "#94a3b8",
+          "#cbd5e1",
+          "#f3f6fa"
+        ]
+      },
+      "muted-steel": {
+        "role": "neutral",
+        "displayName": "Muted Steel",
+        "canonical": "#7c8ea1",
+        "tonalRamp": [
+          "#131920",
+          "#222c38",
+          "#354354",
+          "#4c5d73",
+          "#63768d",
+          "#7c8ea1",
+          "#b0bccb",
+          "#eaeff5"
+        ]
+      },
+      "crimson-alert": {
+        "role": "tertiary",
+        "displayName": "Crimson Alert",
+        "canonical": "#f43f5e",
+        "tonalRamp": [
+          "#2b060e",
+          "#4c0519",
+          "#881337",
+          "#be123c",
+          "#e11d48",
+          "#f43f5e",
+          "#fda4af",
+          "#ffe4e6"
+        ]
+      },
+      "amber-threshold": {
+        "role": "tertiary",
+        "displayName": "Amber Threshold",
+        "canonical": "#f59e0b",
+        "tonalRamp": [
+          "#271302",
+          "#451a03",
+          "#78350f",
+          "#b45309",
+          "#d97706",
+          "#f59e0b",
+          "#fcd34d",
+          "#fef3c7"
+        ]
+      },
+      "signal-cyan": {
+        "role": "secondary",
+        "displayName": "Signal Cyan",
+        "canonical": "#38bdf8",
+        "tonalRamp": [
+          "#082f49",
+          "#0c4a6e",
+          "#075985",
+          "#0369a1",
+          "#0284c7",
+          "#38bdf8",
+          "#7dd3fc",
+          "#e0f2fe"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Saldo Consolidado Realizado no topo do Painel e título principal da tela de Autenticação."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Títulos de modais (FinanceFormModal) e nome da estratégia recomendada pelo Algoritmo Genético."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Títulos de cartões (CardTitle) e cabeçalhos de seção."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Descrições de lançamentos, notas estratégicas da IA, inputs e rótulos de controles."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Rótulos de métricas em caixa alta, códigos do ticker de mercado e badges de status."
+      }
+    },
+    "shadows": [
+      {
+        "name": "card-surface-rest",
+        "value": "0 1px 2px rgba(0, 0, 0, 0.05)",
+        "purpose": "Sombra mínima estrutural no modo claro; no modo escuro a separação é feita via borda hairline #1a2332."
+      },
+      {
+        "name": "modal-vault-overlay",
+        "value": "0 12px 32px -4px rgba(0, 0, 0, 0.55)",
+        "purpose": "Elevação exclusiva para diálogos modais (FinanceFormModal, LGPD e confirmações) sobre backdrop escuro."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-tactical",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Transição rápida para abertura de modais, troca de abas e feedback de toque."
+      },
+      {
+        "name": "duration-instant",
+        "value": "150ms",
+        "purpose": "Duração padrão para mutações otimistas de pagamento e alternância de filtros."
+      }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Action Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Botão tátil primário em Emerald Vector para ações principais (+ Despesa, Entrar, Aplicar 9 Potes).",
+      "html": "<button class=\"ds-btn-primary\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M5 12h14\"/><path d=\"M12 5v14\"/></svg><span>Nova Despesa</span></button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 40px; padding: 10px 16px; background: #00d494; color: #041f16; font-family: Inter, sans-serif; font-size: 13px; font-weight: 700; border: 1px solid #00d494; border-radius: 10px; cursor: pointer; transition: opacity 0.15s ease, transform 0.1s ease; } .ds-btn-primary:hover { opacity: 0.92; } .ds-btn-primary:focus-visible { outline: 2px solid #00d494; outline-offset: 2px; } .ds-btn-primary:active { transform: scale(0.98); }"
+    },
+    {
+      "name": "Secondary Emerald Tonal Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Botão secundário translúcido com contorno esmeralda para Receitas, Modo Sandbox e atalhos da IA.",
+      "html": "<button class=\"ds-btn-secondary\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 3v18\"/><path d=\"m19 14-7 7-7-7\"/></svg><span>Receita</span></button>",
+      "css": ".ds-btn-secondary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 40px; padding: 10px 16px; background: rgba(0, 212, 148, 0.15); color: #00d494; font-family: Inter, sans-serif; font-size: 13px; font-weight: 700; border: 1px solid rgba(0, 212, 148, 0.35); border-radius: 10px; cursor: pointer; transition: background 0.15s ease, transform 0.1s ease; } .ds-btn-secondary:hover { background: rgba(0, 212, 148, 0.22); } .ds-btn-secondary:focus-visible { outline: 2px solid #00d494; outline-offset: 2px; } .ds-btn-secondary:active { transform: scale(0.98); }"
+    },
+    {
+      "name": "Tactical Currency Input",
+      "kind": "input",
+      "refersTo": "input-field",
+      "description": "Campo de entrada monetária com algarismos tabulares sob fundo Obsidian Vault e borda Steel Hairline.",
+      "html": "<div class=\"ds-input-wrap\"><label class=\"ds-input-label\">Valor do Lançamento (R$)</label><input class=\"ds-input-field\" type=\"text\" value=\"2.450,00\" /></div>",
+      "css": ".ds-input-wrap { display: flex; flex-direction: column; gap: 6px; width: 240px; font-family: Inter, sans-serif; } .ds-input-label { font-size: 12px; font-weight: 600; color: #f3f6fa; } .ds-input-field { height: 40px; padding: 8px 12px; background: #080c10; color: #f3f6fa; font-family: Inter, sans-serif; font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; border: 1px solid #1a2332; border-radius: 10px; transition: border-color 0.15s ease, box-shadow 0.15s ease; } .ds-input-field:hover { border-color: #2c3a4f; } .ds-input-field:focus-visible { outline: none; border-color: #00d494; box-shadow: 0 0 0 2px rgba(0, 212, 148, 0.25); }"
+    },
+    {
+      "name": "Protected Obligation Badge (Blindado)",
+      "kind": "chip",
+      "refersTo": "chip-status",
+      "description": "Selo indicador de obrigação legal ou piso de sobrevivência protegido pelo Algoritmo Genético.",
+      "html": "<span class=\"ds-chip-protected\"><svg width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect width=\"18\" height=\"11\" x=\"3\" y=\"11\" rx=\"2\" ry=\"2\"/><path d=\"M7 11V7a5 5 0 0 1 10 0v4\"/></svg><span>BLINDADO</span></span>",
+      "css": ".ds-chip-protected { display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 2px 8px; background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 9999px; font-family: Inter, sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }"
+    },
+    {
+      "name": "Consolidated Balance Vault Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Cartão principal de saldo consolidado realizado e projetado com algarismos tabulares.",
+      "html": "<div class=\"ds-card-vault\"><div class=\"ds-card-head\"><span class=\"ds-card-kicker\">SALDO CONSOLIDADO REALIZADO</span><span class=\"ds-card-period\">OUT 2026</span></div><div class=\"ds-card-balance\">R$ 14.820,50</div><div class=\"ds-card-proj\"><span>Saldo Projetado no fim do mês</span><strong>R$ 18.350,00</strong></div></div>",
+      "css": ".ds-card-vault { width: 320px; padding: 16px; background: #0e141d; color: #f3f6fa; border: 1px solid #1a2332; border-radius: 12px; font-family: Inter, sans-serif; } .ds-card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; } .ds-card-kicker { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: #7c8ea1; } .ds-card-period { font-size: 10px; font-weight: 700; color: #00d494; background: rgba(0, 212, 148, 0.12); border: 1px solid rgba(0, 212, 148, 0.35); padding: 2px 8px; border-radius: 9999px; } .ds-card-balance { font-size: 28px; font-weight: 800; letter-spacing: -0.025em; font-variant-numeric: tabular-nums; color: #f3f6fa; margin-bottom: 12px; } .ds-card-proj { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #080c10; border: 1px solid #1a2332; border-radius: 8px; font-size: 12px; color: #7c8ea1; } .ds-card-proj strong { color: #f3f6fa; font-variant-numeric: tabular-nums; }"
+    },
+    {
+      "name": "Bottom Navigation Bar",
+      "kind": "nav",
+      "refersTo": "card",
+      "description": "Barra de navegação inferior com 5 destinos operacionais e destaque ativo em Emerald Vector.",
+      "html": "<nav class=\"ds-bottom-nav\"><button class=\"ds-nav-item ds-nav-active\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.2\"><rect width=\"7\" height=\"9\" x=\"3\" y=\"3\" rx=\"1\"/><rect width=\"7\" height=\"5\" x=\"14\" y=\"3\" rx=\"1\"/><rect width=\"7\" height=\"9\" x=\"14\" y=\"12\" rx=\"1\"/><rect width=\"7\" height=\"5\" x=\"3\" y=\"16\" rx=\"1\"/></svg><span>Painel</span></button><button class=\"ds-nav-item\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"m16 3 4 4-4 4\"/><path d=\"M20 7H4\"/><path d=\"m8 21-4-4 4-4\"/><path d=\"M4 17h16\"/></svg><span>Extrato</span></button><button class=\"ds-nav-item\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z\"/><path d=\"M9 13a4.5 4.5 0 0 0 3-4\"/><path d=\"M12 13h4\"/><path d=\"M12 18h6a2 2 0 0 1 2 2v1\"/><path d=\"M12 8h8\"/></svg><span>IA / GA</span></button></nav>",
+      "css": ".ds-bottom-nav { display: flex; justify-content: space-around; align-items: center; width: 320px; height: 62px; background: #0e141d; border-top: 1px solid #1a2332; font-family: Inter, sans-serif; } .ds-nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; background: transparent; border: none; color: #64748b; font-size: 10px; font-weight: 700; cursor: pointer; padding: 6px 12px; transition: color 0.15s ease; } .ds-nav-item:hover { color: #94a3b8; } .ds-nav-active { color: #00d494; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Tactical Vault",
+    "overview": "O Rumvel Mobile opera sob a metáfora The Tactical Vault (O Cofre Tático): uma central de comando patrimonial de bolso onde a blindagem das obrigações essenciais da família brasileira encontra velocidade operacional de um toque. A estética combina sobriedade instrumental, densidade escaneável e dignidade patrimonial — tratando cada centavo, teto orçamentário e obrigação legal com o rigor de um terminal bancário profissional.\n\nA arquitetura visual é Dark-First, repousando sobre um fundo de obsidiana profunda que reduz a fadiga ocular e faz com que os sinais semânticos — avanços de receita, alertas de teto orçamentário e potes blindados do Algoritmo Genético — saltem imediatamente à vista. O sistema rejeita categoricamente gamificações infantis, confetes comemorativos, gradientes de texto decorativos e sombras neobrutalistas duras, priorizando contornos estruturais precisos e resposta tátil imediata em Android e iOS.",
+    "keyCharacteristics": [
+      "Superfícies em camadas tonais escuras (Obsidian Vault e Slate Ledger) delimitadas por bordas estruturais hairline de 1px (#1a2332).",
+      "Sinalização semântica de alta precisão liderada por Emerald Vector (#00d494) para liquidez positiva, Amber Threshold (#f59e0b) para pisos blindados e Crimson Alert (#f43f5e) para déficits ou atrasos.",
+      "Rigor contábil obrigatório com algarismos tabulares (tabular-nums) em todos os saldos, cotações, percentuais dos 9 potes e datas.",
+      "Componentes táteis, compactos e com precisão de instrumento (tactile, compact, and instrument-grade), projetados para operação rápida com uma mão.",
+      "Suporte nativo dual a Modo Escuro (padrão) e Modo Claro de alto contraste (Deep Forest Emerald #047857 sobre Alabaster Sheet #f8fafc)."
+    ],
+    "rules": [
+      {
+        "name": "The Semantic Emerald Rule",
+        "body": "Emerald Vector (#00d494) nunca é usado como preenchimento decorativo de grandes áreas; sua presença indica exclusivamente ação primária disponível, entrada de capital ou saúde orçamentária confirmada.",
+        "section": "colors"
+      },
+      {
+        "name": "The Traffic-Light Integrity Rule",
+        "body": "Toda barra de progresso orçamentário e badge de status deve obedecer estritamente aos limiares contábeis: Emerald Vector (#00d494) abaixo de 80%, Amber Threshold (#f59e0b) de 80% a 99%, e Crimson Alert (#f43f5e) a partir de 100%.",
+        "section": "colors"
+      },
+      {
+        "name": "The Tabular Numerals Law",
+        "body": "Todo valor em reais (R$), porcentagem (%), número de parcela (2/10), cotação de mercado e data deve aplicar obrigatoriamente fontVariant: ['tabular-nums'] (TABULAR_NUMS) para impedir oscilação horizontal de dígitos.",
+        "section": "typography"
+      },
+      {
+        "name": "The Privacy Mask Parity Rule",
+        "body": "Quando o Modo Privacidade estiver ativo, todos os valores monetários devem ser substituídos pela máscara R$ ••••,•• mantendo exatamente o mesmo peso tipográfico, cor semântica e alinhamento do valor original.",
+        "section": "typography"
+      },
+      {
+        "name": "The Structural Hairline Rule",
+        "body": "Nenhum cartão, pílula de cotação ou bloco de resumo flutua solto sobre o fundo sem uma borda explícita de 1px (border-border / #1a2332 no escuro, #e2e8f0 no claro).",
+        "section": "elevation"
+      },
+      {
+        "name": "The No-Neobrutalism Rule",
+        "body": "Sombras sólidas sem desfoque (offset duro) e bordas espessas pretas são estritamente proibidas em qualquer superfície do Rumvel.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do aplique TABULAR_NUMS (fontVariant: ['tabular-nums']) em absolutamente todos os valores monetários, percentuais, contadores de parcelas, datas e indicadores do BCB/AwesomeAPI.",
+      "Do respeite o Modo Privacidade passando o estado privateMode para formatBrlCurrency(amount, privateMode) em todas as exibições de dinheiro.",
+      "Do mantenha o contraste de texto acima de 4.5:1 e use bordas hairline de 1px (#1a2332 no escuro, #e2e8f0 no claro) para separar superfícies tonais.",
+      "Do sinalize obrigações protegidas (pensão alimentícia e piso de moradia/sobrevivência) com o badge BLINDADO e ícone de cadeado para reforçar a segurança matemática do motor.",
+      "Do ofereça ações rápidas de 1 toque (Pagar, Receber, Estornar, Aplicar 9 Potes aos Orçamentos) com feedback imediato de estado."
+    ],
+    "donts": [
+      "Don't aplique gradientes coloridos sobre textos (gradient text) em títulos, saldos ou botões.",
+      "Don't utilize elementos de gamificação infantil (confetes, fogos, mascotes caricatos animados ou troféus) ao concluir pagamentos ou metas.",
+      "Don't use sombras duras neobrutalistas ou brilhos neon exagerados (drop-shadow fluorescente) que comprometam a sobriedade bancária.",
+      "Don't exiba percentuais dos 9 potes orçamentários com casas decimais quebradas que não somem exatamente 100%.",
+      "Don't oculte ações críticas de conformidade LGPD (exportação JSON e exclusão definitiva de conta); mantenha-as acessíveis e transparentes na aba Contas."
+    ]
+  }
+}

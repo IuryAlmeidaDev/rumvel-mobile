@@ -1,70 +1,124 @@
 import React from 'react';
+import { View } from 'react-native';
 import { Tabs } from 'expo-router';
 import { useColorScheme } from 'nativewind';
 import {
   ArrowRightLeftIcon,
-  BrainCircuitIcon,
-  LandmarkIcon,
   LayoutDashboardIcon,
   PieChartIcon,
+  SparklesIcon,
+  WalletIcon,
 } from 'lucide-react-native';
 
 export default function TabsLayout() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme !== 'light';
 
+  const activeColor = isDark ? '#00d494' : '#047857';
+  const inactiveColor = isDark ? '#7c8ea1' : '#64748b';
+
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: isDark ? '#00d494' : '#047857',
-        tabBarInactiveTintColor: isDark ? '#64748b' : '#94a3b8',
+        tabBarActiveTintColor: activeColor,
+        tabBarInactiveTintColor: inactiveColor,
         tabBarStyle: {
           backgroundColor: isDark ? '#0e141d' : '#ffffff',
           borderTopColor: isDark ? '#1a2332' : '#e2e8f0',
           borderTopWidth: 1,
-          height: 62,
+          height: 64,
           paddingTop: 6,
           paddingBottom: 8,
         },
         tabBarLabelStyle: {
-          fontSize: 10,
-          fontWeight: '700',
+          fontSize: 11,
+          fontWeight: '600',
         },
       }}>
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Painel',
-          tabBarIcon: ({ color, size }) => <LayoutDashboardIcon color={color} size={size - 2} />,
+          title: 'Início',
+          tabBarIcon: ({ color, focused }) => (
+            <View className="items-center">
+              <LayoutDashboardIcon color={color} size={20} />
+              {focused ? (
+                <View
+                  style={{ backgroundColor: activeColor }}
+                  className="mt-1 h-1 w-1 rounded-full"
+                />
+              ) : null}
+            </View>
+          ),
         }}
       />
       <Tabs.Screen
         name="transactions"
         options={{
-          title: 'Extrato',
-          tabBarIcon: ({ color, size }) => <ArrowRightLeftIcon color={color} size={size - 2} />,
+          title: 'Lançamentos',
+          tabBarIcon: ({ color, focused }) => (
+            <View className="items-center">
+              <ArrowRightLeftIcon color={color} size={20} />
+              {focused ? (
+                <View
+                  style={{ backgroundColor: activeColor }}
+                  className="mt-1 h-1 w-1 rounded-full"
+                />
+              ) : null}
+            </View>
+          ),
         }}
       />
       <Tabs.Screen
         name="planner"
         options={{
-          title: 'IA / GA',
-          tabBarIcon: ({ color, size }) => <BrainCircuitIcon color={color} size={size - 2} />,
+          title: 'Planejador',
+          tabBarIcon: ({ color, focused }) => (
+            <View className="items-center">
+              <SparklesIcon color={color} size={20} />
+              {focused ? (
+                <View
+                  style={{ backgroundColor: activeColor }}
+                  className="mt-1 h-1 w-1 rounded-full"
+                />
+              ) : null}
+            </View>
+          ),
         }}
       />
       <Tabs.Screen
         name="budgets"
         options={{
           title: 'Orçamentos',
-          tabBarIcon: ({ color, size }) => <PieChartIcon color={color} size={size - 2} />,
+          tabBarIcon: ({ color, focused }) => (
+            <View className="items-center">
+              <PieChartIcon color={color} size={20} />
+              {focused ? (
+                <View
+                  style={{ backgroundColor: activeColor }}
+                  className="mt-1 h-1 w-1 rounded-full"
+                />
+              ) : null}
+            </View>
+          ),
         }}
       />
       <Tabs.Screen
         name="accounts"
         options={{
           title: 'Contas',
-          tabBarIcon: ({ color, size }) => <LandmarkIcon color={color} size={size - 2} />,
+          tabBarIcon: ({ color, focused }) => (
+            <View className="items-center">
+              <WalletIcon color={color} size={20} />
+              {focused ? (
+                <View
+                  style={{ backgroundColor: activeColor }}
+                  className="mt-1 h-1 w-1 rounded-full"
+                />
+              ) : null}
+            </View>
+          ),
         }}
       />
     </Tabs>

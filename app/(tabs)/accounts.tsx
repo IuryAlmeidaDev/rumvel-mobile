@@ -5,7 +5,6 @@ import {
   ArchiveIcon,
   CalculatorIcon,
   DownloadIcon,
-  LandmarkIcon,
   LogOutIcon,
   PencilIcon,
   PlusIcon,
@@ -15,6 +14,7 @@ import {
   Trash2Icon,
 } from 'lucide-react-native';
 import { AppHeader } from '@/components/finance/AppHeader';
+import { BankBadge } from '@/components/finance/BankBadge';
 import { FinanceFormModal } from '@/components/finance/FinanceFormModal';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,7 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -51,6 +52,16 @@ import {
   sanitizeAmountInput,
   TABULAR_NUMS,
 } from '@/lib/formatters';
+
+const ACCOUNT_TYPE_LABELS: Record<string, string> = {
+  CHECKING: 'Conta corrente',
+  SAVINGS: 'Poupança',
+  CASH: 'Dinheiro',
+  WALLET: 'Carteira',
+  INVESTMENT: 'Investimentos',
+  CREDIT: 'Cartão de crédito',
+  OTHER: 'Outra conta',
+};
 
 export default function AccountsScreen() {
   const {
@@ -166,8 +177,8 @@ export default function AccountsScreen() {
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top']}>
       <AppHeader
-        title="Contas, Mercado & LGPD"
-        subtitle="Saldos bancários, indicadores BCB e privacidade de dados"
+        title="Minhas contas"
+        subtitle="Acompanhe onde seu dinheiro está."
         showMonthSelector={false}
       />
 
@@ -175,107 +186,124 @@ export default function AccountsScreen() {
         className="flex-1"
         contentContainerClassName="gap-4 p-4 pb-12"
         showsVerticalScrollIndicator={false}>
-        {/* Section 1: Bank Accounts */}
-        <Card className="border-border bg-card">
-          <CardHeader className="flex-row items-center justify-between pb-2">
-            <View className="flex-1 pr-2">
-              <CardTitle className="text-base font-bold text-foreground">
-                Contas Bancárias & Carteiras ({accounts.length})
-              </CardTitle>
-              <CardDescription className="text-xs text-muted-foreground">
-                Saldos realizados e projetados por instituição financeira.
-              </CardDescription>
-            </View>
-            <Button size="sm" onPress={handleOpenCreateAccount}>
-              <Icon as={PlusIcon} className="mr-1.5 size-3.5 text-primary-foreground" />
-              <Text className="text-xs font-bold">Nova Conta</Text>
-            </Button>
-          </CardHeader>
+        {/* Top Action Row */}
+        <View className="flex-row items-center justify-between">
+          <Text className="text-xs font-medium text-muted-foreground">
+            {accounts.length} {accounts.length === 1 ? 'conta cadastrada' : 'contas cadastradas'}
+          </Text>
+          <Button size="sm" onPress={handleOpenCreateAccount}>
+            <Icon as={PlusIcon} className="mr-1.5 size-3.5 text-primary-foreground" />
+            <Text className="text-xs font-semibold text-primary-foreground">Nova conta</Text>
+          </Button>
+        </View>
 
-          <CardContent className="gap-2.5 pt-2">
-            {accounts.map((acc) => (
-              <View
-                key={acc.id}
-                className={`rounded-lg border border-border bg-background/70 p-3.5 ${
-                  acc.archived ? 'opacity-60' : ''
-                }`}>
-                <View className="flex-row items-start justify-between">
-                  <View className="flex-row items-center gap-2.5">
-                    <View className="h-9 w-9 items-center justify-center rounded-lg border border-primary/40 bg-primary/15">
-                      <Icon as={LandmarkIcon} className="size-4 text-primary" />
-                    </View>
-                    <View>
-                      <View className="flex-row items-center gap-1.5">
-                        <Text className="text-sm font-bold text-foreground">{acc.name}</Text>
-                        <Badge variant="outline" className="h-4 px-1.5 py-0">
-                          <Text className="text-[9px] font-bold">{acc.type ?? 'CONTA'}</Text>
-                        </Badge>
-                        {acc.archived ? (
-                          <Badge variant="secondary" className="h-4 px-1.5 py-0">
-                            <Text className="text-[9px] font-bold">ARQUIVADA</Text>
-                          </Badge>
-                        ) : null}
-                      </View>
-                      <Text className="text-[11px] text-muted-foreground">
-                        {acc.includeInTotal
-                          ? 'Incluída no saldo consolidado'
-                          : 'Ignorada no saldo consolidado'}
-                      </Text>
-                    </View>
-                  </View>
+        {/* Accounts Catalog Grid (matching web FinanceDashboard page === "contas") */}
+        <View className="gap-3">
+          {accounts.map((acc) => (
+            <Card
+              key={acc.id}
+              className={`border-border bg-card ${acc.archived ? 'opacity-65' : ''}`}>
+              <CardHeader className="flex-row items-start justify-between pb-2">
+                <View className="flex-1 pr-3">
+                  <CardTitle className="text-base font-bold text-foreground">
+                    {acc.name}
+                  </CardTitle>
+                  <CardDescription className="mt-0.5 text-xs text-muted-foreground">
+                    {ACCOUNT_TYPE_LABELS[acc.type ?? 'OTHER'] ?? 'Outra conta'}
+                  </CardDescription>
+                </View>
+                <BankBadge name={acc.name} type={acc.type} size="md" />
+              </CardHeader>
 
-                  <View className="flex-row items-center gap-1">
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-7 w-7"
-                      onPress={() => handleOpenEditAccount(acc)}
-                      accessibilityLabel="Editar conta">
-                      <Icon as={PencilIcon} className="size-3.5 text-muted-foreground" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-7 w-7"
-                      onPress={() => void handleToggleArchive(acc)}
-                      accessibilityLabel="Arquivar ou desarquivar conta">
-                      <Icon as={ArchiveIcon} className="size-3.5 text-muted-foreground" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-7 w-7"
-                      onPress={() => void handleRemoveAccount(acc)}
-                      accessibilityLabel="Excluir conta">
-                      <Icon as={Trash2Icon} className="size-3.5 text-destructive" />
-                    </Button>
-                  </View>
+              <CardContent className="pb-3 pt-1">
+                <Text className="text-[11px] text-muted-foreground">Saldo realizado</Text>
+                <Text
+                  style={TABULAR_NUMS}
+                  className="mt-1 text-2xl font-bold tracking-tight text-foreground">
+                  {formatBrlCurrency(acc.realized ?? 0, privateMode)}
+                </Text>
+                <Text className="mt-2 text-xs text-muted-foreground">
+                  Projetado:{' '}
+                  <Text style={TABULAR_NUMS} className="font-semibold text-foreground">
+                    {formatBrlCurrency(acc.projected ?? acc.realized ?? 0, privateMode)}
+                  </Text>
+                </Text>
+              </CardContent>
+
+              <CardFooter className="flex-col items-stretch gap-2.5 pt-0">
+                <View className="flex-row flex-wrap items-center justify-between gap-2">
+                  <Badge variant="secondary">
+                    <Text className="text-[10px] font-semibold">
+                      {acc.includeInTotal
+                        ? 'Incluída no saldo total'
+                        : 'Fora do saldo total'}
+                    </Text>
+                  </Badge>
+                  {acc.archived ? (
+                    <Badge variant="outline">
+                      <Text className="text-[10px] text-muted-foreground">Arquivada</Text>
+                    </Badge>
+                  ) : null}
                 </View>
 
-                <Separator className="my-2.5" />
+                <View className="flex-row flex-wrap items-center justify-end gap-1 border-t border-border/70 pt-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 flex-row items-center gap-1.5 px-2.5"
+                    onPress={() => handleOpenEditAccount(acc)}
+                    accessibilityLabel={`Editar conta ${acc.name}`}>
+                    <Icon as={PencilIcon} className="size-3.5 text-muted-foreground" />
+                    <Text className="text-xs font-medium text-foreground">Editar</Text>
+                  </Button>
 
-                <View className="flex-row justify-between">
-                  <View>
-                    <Text className="text-[10px] uppercase text-muted-foreground">
-                      Saldo Realizado
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 flex-row items-center gap-1.5 px-2.5"
+                    onPress={() => void handleToggleArchive(acc)}
+                    accessibilityLabel={`${acc.archived ? 'Desarquivar' : 'Arquivar'} conta ${acc.name}`}>
+                    <Icon as={ArchiveIcon} className="size-3.5 text-muted-foreground" />
+                    <Text className="text-xs font-medium text-foreground">
+                      {acc.archived ? 'Desarquivar' : 'Arquivar'}
                     </Text>
-                    <Text style={TABULAR_NUMS} className="text-sm font-extrabold text-primary">
-                      {formatBrlCurrency(acc.realized ?? 0, privateMode)}
-                    </Text>
-                  </View>
-                  <View className="items-end">
-                    <Text className="text-[10px] uppercase text-muted-foreground">
-                      Saldo Projetado
-                    </Text>
-                    <Text style={TABULAR_NUMS} className="text-sm font-bold text-foreground">
-                      {formatBrlCurrency(acc.projected ?? acc.realized ?? 0, privateMode)}
-                    </Text>
-                  </View>
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 flex-row items-center gap-1.5 px-2.5"
+                    onPress={() => void handleRemoveAccount(acc)}
+                    accessibilityLabel={`Excluir conta ${acc.name}`}>
+                    <Icon as={Trash2Icon} className="size-3.5 text-destructive" />
+                    <Text className="text-xs font-medium text-destructive">Excluir</Text>
+                  </Button>
                 </View>
-              </View>
-            ))}
-          </CardContent>
-        </Card>
+              </CardFooter>
+            </Card>
+          ))}
+
+          {/* Add Account Card matching web catalog-grid */}
+          <Card className="border-dashed border-border bg-card">
+            <CardContent className="items-center justify-center gap-1.5 py-6">
+              <Text className="text-sm font-bold text-foreground">
+                Um lugar para cada saldo
+              </Text>
+              <Text className="text-center text-xs text-muted-foreground">
+                Adicione suas contas para ter uma visão completa.
+              </Text>
+            </CardContent>
+            <CardFooter>
+              <Button
+                variant="outline"
+                className="w-full flex-row items-center justify-center gap-1.5"
+                onPress={handleOpenCreateAccount}>
+                <Icon as={PlusIcon} className="size-4 text-foreground" />
+                <Text className="text-xs font-semibold">Adicionar conta</Text>
+              </Button>
+            </CardFooter>
+          </Card>
+        </View>
 
         {/* Section 2: Market Radar & CDI/IPCA Simulator */}
         <Card className="border-border bg-card">
@@ -284,7 +312,7 @@ export default function AccountsScreen() {
               <View className="flex-row items-center gap-1.5">
                 <Icon as={CalculatorIcon} className="size-4 text-primary" />
                 <CardTitle className="text-base font-bold text-foreground">
-                  Simulador de Rendimento Real (Selic vs IPCA)
+                  Calculadora de Inflação & CDI
                 </CardTitle>
               </View>
               <CardDescription className="text-xs text-muted-foreground">
@@ -318,7 +346,7 @@ export default function AccountsScreen() {
                 <Text className="text-[10px] font-bold uppercase text-primary">
                   100% CDI Líquido (12m)
                 </Text>
-                <Text style={TABULAR_NUMS} className="mt-0.5 text-sm font-extrabold text-foreground">
+                <Text style={TABULAR_NUMS} className="mt-0.5 text-sm font-bold text-foreground">
                   {formatBrlCurrency(simResults.cdiNet12m, privateMode)}
                 </Text>
                 <Text className="text-[10px] text-muted-foreground">Já descontado IR (17,5%)</Text>
@@ -328,7 +356,7 @@ export default function AccountsScreen() {
                 <Text className="text-[10px] font-bold uppercase text-muted-foreground">
                   Ganho Real Acima do IPCA
                 </Text>
-                <Text style={TABULAR_NUMS} className="mt-0.5 text-sm font-extrabold text-primary">
+                <Text style={TABULAR_NUMS} className="mt-0.5 text-sm font-bold text-primary">
                   +{formatBrlCurrency(simResults.realGainAboveInflation, privateMode)}
                 </Text>
                 <Text className="text-[10px] text-muted-foreground">
@@ -345,7 +373,7 @@ export default function AccountsScreen() {
             <View className="flex-row items-center gap-1.5">
               <Icon as={ShieldCheckIcon} className="size-4 text-primary" />
               <CardTitle className="text-base font-bold text-foreground">
-                Perfil, Segurança & Direitos LGPD
+                Privacidade & Seus Dados (LGPD)
               </CardTitle>
             </View>
             <CardDescription className="text-xs text-muted-foreground">
@@ -371,7 +399,7 @@ export default function AccountsScreen() {
                 onPress={() => void resetDemoSandbox()}>
                 <Icon as={RotateCcwIcon} className="size-4 text-amber-400" />
                 <Text className="text-xs font-semibold">
-                  Restaurar Dados Originais do Modo Sandbox
+                  Restaurar Dados Originais do Modo Demonstração
                 </Text>
               </Button>
             ) : null}
@@ -381,7 +409,7 @@ export default function AccountsScreen() {
               className="w-full flex-row items-center justify-start gap-2.5"
               onPress={() => void logout()}>
               <Icon as={LogOutIcon} className="size-4 text-foreground" />
-              <Text className="text-xs font-semibold">Encerrar Sessão com Segurança</Text>
+              <Text className="text-xs font-semibold">Sair da conta</Text>
             </Button>
 
             <Separator className="my-1" />
@@ -396,8 +424,8 @@ export default function AccountsScreen() {
                 setDeleteDialogOpen(true);
               }}>
               <Icon as={Trash2Icon} className="size-4 text-destructive-foreground" />
-              <Text className="text-xs font-bold">
-                Excluir Minha Conta Permanentemente (Direito ao Esquecimento)
+              <Text className="text-xs font-bold text-destructive-foreground">
+                Excluir Minha Conta Permanentemente
               </Text>
             </Button>
           </CardContent>

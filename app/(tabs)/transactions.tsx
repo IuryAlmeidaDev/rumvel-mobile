@@ -2,19 +2,17 @@ import React, { useMemo, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
-  AlertTriangleIcon,
-  ArrowDownLeftIcon,
   ArrowRightLeftIcon,
-  ArrowUpRightIcon,
-  CheckCircle2Icon,
-  ClockIcon,
   PencilIcon,
   PlusIcon,
   RepeatIcon,
   SearchIcon,
   Trash2Icon,
+  XIcon,
 } from 'lucide-react-native';
 import { AppHeader } from '@/components/finance/AppHeader';
+import { BankBadge } from '@/components/finance/BankBadge';
+import { CategoryBadge } from '@/components/finance/CategoryBadge';
 import { FinanceFormModal } from '@/components/finance/FinanceFormModal';
 import {
   AlertDialog,
@@ -28,7 +26,13 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
@@ -61,14 +65,25 @@ export default function TransactionsScreen() {
   const todayStr = getTodayString();
 
   const categoryMap = useMemo(() => {
-    const map = new Map<string, string>();
-    categories.forEach((c) => map.set(c.id, c.name));
+    const map = new Map<
+      string,
+      { name: string; color?: string; iconSlug?: string; parentId?: string | null; type?: string }
+    >();
+    categories.forEach((c) =>
+      map.set(c.id, {
+        name: c.name,
+        color: c.color,
+        iconSlug: c.iconSlug,
+        parentId: c.parentId,
+        type: c.type,
+      })
+    );
     return map;
   }, [categories]);
 
   const accountMap = useMemo(() => {
-    const map = new Map<string, string>();
-    accounts.forEach((a) => map.set(a.id, a.name));
+    const map = new Map<string, { name: string; type?: string }>();
+    accounts.forEach((a) => map.set(a.id, { name: a.name, type: a.type }));
     return map;
   }, [accounts]);
 
@@ -80,18 +95,19 @@ export default function TransactionsScreen() {
         }
         const typeUpper = tx.type.toUpperCase();
         const isOverdue = !tx.paid && tx.date.slice(0, 10) < todayStr;
+        const isPending = !tx.paid && tx.date.slice(0, 10) >= todayStr;
 
         if (activeFilter === 'EXPENSE' && typeUpper !== 'EXPENSE') return false;
         if (activeFilter === 'INCOME' && typeUpper !== 'INCOME') return false;
         if (activeFilter === 'TRANSFER' && typeUpper !== 'TRANSFER') return false;
-        if (activeFilter === 'PENDING' && tx.paid) return false;
+        if (activeFilter === 'PENDING' && !isPending) return false;
         if (activeFilter === 'OVERDUE' && !isOverdue) return false;
         if (activeFilter === 'PAID' && !tx.paid) return false;
 
         if (searchQuery.trim()) {
           const q = searchQuery.toLowerCase();
-          const catName = (tx.categoryId ? categoryMap.get(tx.categoryId) : '')?.toLowerCase() ?? '';
-          const accName = (accountMap.get(tx.accountId) ?? '').toLowerCase();
+          const catName = (tx.categoryId ? categoryMap.get(tx.categoryId)?.name : '')?.toLowerCase() ?? '';
+          const accName = (accountMap.get(tx.accountId)?.name ?? '').toLowerCase();
           return (
             tx.description.toLowerCase().includes(q) ||
             catName.includes(q) ||
@@ -103,16 +119,14 @@ export default function TransactionsScreen() {
       .sort((a, b) => b.date.localeCompare(a.date));
   }, [transactions, selectedAccountId, activeFilter, searchQuery, todayStr, categoryMap, accountMap]);
 
-  const summary = useMemo(() => {
-    let income = 0;
-    let expense = 0;
-    filteredTransactions.forEach((tx) => {
-      const t = tx.type.toUpperCase();
-      if (t === 'INCOME') income += Math.abs(tx.amount);
-      else if (t === 'EXPENSE') expense += Math.abs(tx.amount);
-    });
-    return { income, expense, net: income - expense };
-  }, [filteredTransactions]);
+  const hasActiveFilters =
+    activeFilter !== 'ALL' || selectedAccountId !== 'ALL' || searchQuery.trim() !== '';
+
+  const clearFilters = () => {
+    setSearchQuery('');
+    setActiveFilter('ALL');
+    setSelectedAccountId('ALL');
+  };
 
   const handleOpenCreate = () => {
     setEditTx(null);
@@ -139,17 +153,17 @@ export default function TransactionsScreen() {
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top']}>
       <AppHeader
-        title="Extrato & Lançamentos"
-        subtitle="Gestão de receitas, despesas, parcelas e recorrências"
+        title="Lançamentos"
+        subtitle="Cada entrada e saída, organizada em um só lugar."
         showMarketStrip={false}
       />
 
       <View className="border-b border-border bg-card px-4 py-3">
-        {/* Search + New Button */}
+        {/* Search + Novo lançamento Button */}
         <View className="flex-row items-center gap-2">
           <View className="relative flex-1 justify-center">
             <Input
-              placeholder="Buscar descrição, categoria ou conta..."
+              placeholder="Buscar descrição, conta ou categoria…"
               value={searchQuery}
               onChangeText={setSearchQuery}
               className="h-9 pl-3 pr-3 text-xs"
@@ -160,7 +174,7 @@ export default function TransactionsScreen() {
             className="h-9 flex-row items-center gap-1.5 px-3"
             onPress={handleOpenCreate}>
             <Icon as={PlusIcon} className="size-4 text-primary-foreground" />
-            <Text className="text-xs font-bold">Novo</Text>
+            <Text className="text-xs font-semibold text-primary-foreground">Novo lançamento</Text>
           </Button>
         </View>
 
@@ -172,13 +186,13 @@ export default function TransactionsScreen() {
           contentContainerClassName="gap-1.5">
           {(
             [
-              { key: 'ALL', label: 'Todos' },
-              { key: 'EXPENSE', label: 'Despesas' },
+              { key: 'ALL', label: 'Todos os tipos' },
               { key: 'INCOME', label: 'Receitas' },
+              { key: 'EXPENSE', label: 'Despesas' },
               { key: 'TRANSFER', label: 'Transferências' },
               { key: 'PENDING', label: 'Pendentes' },
               { key: 'OVERDUE', label: 'Atrasados' },
-              { key: 'PAID', label: 'Pagos / Recebidos' },
+              { key: 'PAID', label: 'Pagos' },
             ] as const
           ).map((f) => (
             <Button
@@ -192,30 +206,41 @@ export default function TransactionsScreen() {
           ))}
         </ScrollView>
 
-        {/* Account Filter Pills */}
+        {/* Account Filter Pills with BankBadge */}
         {accounts.length > 0 ? (
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             className="mt-2"
-            contentContainerClassName="gap-1.5">
+            contentContainerClassName="items-center gap-1.5">
             <Button
               size="sm"
               variant={selectedAccountId === 'ALL' ? 'secondary' : 'ghost'}
-              className="h-6 px-2"
+              className="h-7 px-2.5"
               onPress={() => setSelectedAccountId('ALL')}>
-              <Text className="text-[10px] font-bold">Todas as Contas</Text>
+              <Text className="text-[11px] font-semibold">Todas as contas</Text>
             </Button>
             {accounts.map((acc) => (
               <Button
                 key={acc.id}
                 size="sm"
                 variant={selectedAccountId === acc.id ? 'secondary' : 'ghost'}
-                className="h-6 px-2"
+                className="h-7 flex-row items-center gap-1.5 px-2.5"
                 onPress={() => setSelectedAccountId(acc.id)}>
-                <Text className="text-[10px] font-semibold">{acc.name}</Text>
+                <BankBadge name={acc.name} type={acc.type} size="xs" />
+                <Text className="text-[11px] font-semibold">{acc.name}</Text>
               </Button>
             ))}
+            {hasActiveFilters ? (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 flex-row items-center gap-1 px-2"
+                onPress={clearFilters}>
+                <Icon as={XIcon} className="size-3 text-muted-foreground" />
+                <Text className="text-[11px] text-muted-foreground">Limpar filtros</Text>
+              </Button>
+            ) : null}
           </ScrollView>
         ) : null}
       </View>
@@ -224,180 +249,175 @@ export default function TransactionsScreen() {
         className="flex-1"
         contentContainerClassName="gap-3 p-4 pb-10"
         showsVerticalScrollIndicator={false}>
-        {/* Filtered Summary Strip */}
-        <View className="flex-row gap-2">
-          <View className="flex-1 rounded-lg border border-border bg-card p-2.5">
-            <Text className="text-[10px] uppercase text-muted-foreground">Entradas</Text>
-            <Text style={TABULAR_NUMS} className="text-xs font-bold text-primary">
-              {formatBrlCurrency(summary.income, privateMode)}
-            </Text>
-          </View>
-          <View className="flex-1 rounded-lg border border-border bg-card p-2.5">
-            <Text className="text-[10px] uppercase text-muted-foreground">Saídas</Text>
-            <Text style={TABULAR_NUMS} className="text-xs font-bold text-destructive">
-              {formatBrlCurrency(summary.expense, privateMode)}
-            </Text>
-          </View>
-          <View className="flex-1 rounded-lg border border-border bg-card p-2.5">
-            <Text className="text-[10px] uppercase text-muted-foreground">
-              Itens ({filteredTransactions.length})
-            </Text>
-            <Text
-              style={TABULAR_NUMS}
-              className={`text-xs font-bold ${
-                summary.net >= 0 ? 'text-primary' : 'text-destructive'
-              }`}>
-              {formatBrlCurrency(summary.net, privateMode)}
-            </Text>
-          </View>
-        </View>
+        <Card className="border-border bg-card">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-bold text-foreground">
+              Todos os lançamentos
+            </CardTitle>
+            <CardDescription className="text-xs text-muted-foreground">
+              {filteredTransactions.length}{' '}
+              {filteredTransactions.length === 1
+                ? 'lançamento encontrado no período.'
+                : 'lançamentos encontrados no período.'}
+            </CardDescription>
+          </CardHeader>
 
-        {/* Transactions List */}
-        {filteredTransactions.length === 0 ? (
-          <Card className="border-dashed border-border bg-card">
-            <CardContent className="items-center justify-center gap-2 py-10">
-              <Icon as={SearchIcon} className="size-7 text-muted-foreground" />
-              <Text className="text-sm font-bold text-foreground">
-                Nenhum lançamento encontrado
-              </Text>
-              <Text className="text-center text-xs text-muted-foreground">
-                Ajuste os filtros ou registre uma nova movimentação neste período.
-              </Text>
-              <Button size="sm" className="mt-2" onPress={handleOpenCreate}>
-                <Icon as={PlusIcon} className="mr-1.5 size-3.5 text-primary-foreground" />
-                <Text className="text-xs font-bold">Adicionar Lançamento</Text>
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          filteredTransactions.map((tx) => {
-            const typeUpper = tx.type.toUpperCase();
-            const isIncome = typeUpper === 'INCOME';
-            const isTransfer = typeUpper === 'TRANSFER';
-            const isOverdue = !tx.paid && tx.date.slice(0, 10) < todayStr;
-            const catName = tx.categoryId ? categoryMap.get(tx.categoryId) : undefined;
-            const accName = accountMap.get(tx.accountId) ?? 'Conta';
-            const destAccName = tx.destinationAccountId
-              ? accountMap.get(tx.destinationAccountId)
-              : undefined;
+          <CardContent className="gap-0 px-4 pt-1">
+            {filteredTransactions.length === 0 ? (
+              <View className="items-center justify-center gap-2 py-8">
+                <Icon as={SearchIcon} className="size-6 text-muted-foreground" />
+                <Text className="text-sm font-bold text-foreground">
+                  Nenhum lançamento encontrado
+                </Text>
+                <Text className="text-center text-xs text-muted-foreground">
+                  {hasActiveFilters
+                    ? 'Tente outra busca ou altere os filtros selecionados.'
+                    : 'Adicione uma conta e registre seu primeiro lançamento.'}
+                </Text>
+                {hasActiveFilters ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-2 flex-row items-center gap-1.5"
+                    onPress={clearFilters}>
+                    <Icon as={XIcon} className="size-3.5 text-foreground" />
+                    <Text className="text-xs">Limpar filtros</Text>
+                  </Button>
+                ) : null}
+              </View>
+            ) : (
+              filteredTransactions.map((tx, idx) => {
+                const typeUpper = tx.type.toUpperCase();
+                const isIncome = typeUpper === 'INCOME';
+                const isExpense = typeUpper === 'EXPENSE';
+                const isTransfer = typeUpper === 'TRANSFER';
+                const isOverdue = !tx.paid && tx.date.slice(0, 10) < todayStr;
+                const cat = tx.categoryId ? categoryMap.get(tx.categoryId) : undefined;
+                const parentCat = cat?.parentId ? categoryMap.get(cat.parentId) : undefined;
+                const acc = accountMap.get(tx.accountId);
+                const accName = acc?.name ?? 'Conta';
+                const destAccName = tx.destinationAccountId
+                  ? accountMap.get(tx.destinationAccountId)?.name
+                  : undefined;
 
-            return (
-              <Card key={tx.id} className="border-border bg-card">
-                <CardContent className="gap-2.5 p-3.5">
-                  <View className="flex-row items-start justify-between gap-2">
-                    <View className="flex-row items-start gap-2.5 flex-1">
-                      <View
-                        className={`mt-0.5 h-8 w-8 items-center justify-center rounded-lg border ${
-                          isIncome
-                            ? 'border-primary/40 bg-primary/15'
-                            : isTransfer
-                              ? 'border-sky-500/40 bg-sky-500/15'
-                              : 'border-destructive/40 bg-destructive/15'
-                        }`}>
-                        <Icon
-                          as={
-                            isIncome
-                              ? ArrowDownLeftIcon
-                              : isTransfer
-                                ? ArrowRightLeftIcon
-                                : ArrowUpRightIcon
-                          }
-                          className={`size-4 ${
-                            isIncome
-                              ? 'text-primary'
-                              : isTransfer
-                                ? 'text-sky-400'
-                                : 'text-destructive'
-                          }`}
+                return (
+                  <View
+                    key={tx.id}
+                    className={`flex-row items-center justify-between gap-3 py-3.5 ${
+                      idx > 0 ? 'border-t border-border/60' : ''
+                    }`}>
+                    {/* Left: CategoryBadge + Description & Account/Date */}
+                    <View className="flex-row items-center gap-3 flex-1">
+                      {isTransfer ? (
+                        <View className="h-9 w-9 items-center justify-center rounded-xl border border-sky-500/30 bg-sky-500/15">
+                          <Icon as={ArrowRightLeftIcon} className="size-4 text-sky-400" />
+                        </View>
+                      ) : (
+                        <CategoryBadge
+                          name={cat?.name}
+                          parentName={parentCat?.name}
+                          type={tx.type}
+                          iconSlug={cat?.iconSlug}
+                          color={cat?.color}
+                          size="md"
                         />
-                      </View>
+                      )}
 
                       <View className="flex-1">
-                        <Text className="text-sm font-bold text-foreground" numberOfLines={1}>
-                          {tx.description}
-                        </Text>
-                        <Text className="text-[11px] text-muted-foreground">
-                          {isTransfer
-                            ? `${accName} → ${destAccName ?? 'Destino'}`
-                            : `${catName ?? 'Sem Categoria'} • ${accName}`}
+                        <Text className="text-xs font-semibold text-foreground" numberOfLines={1}>
+                          {tx.description || 'Sem descrição'}
                         </Text>
 
-                        <View className="mt-1.5 flex-row flex-wrap items-center gap-1.5">
-                          <Badge
-                            variant={
-                              tx.paid
-                                ? 'outline'
-                                : isOverdue
-                                  ? 'destructive'
-                                  : 'secondary'
-                            }
-                            className="h-4 px-1.5 py-0">
-                            <Icon
-                              as={
-                                tx.paid
-                                  ? CheckCircle2Icon
-                                  : isOverdue
-                                    ? AlertTriangleIcon
-                                    : ClockIcon
-                              }
-                              className="mr-1 size-2.5 text-foreground"
-                            />
-                            <Text className="text-[9px] font-bold">
-                              {tx.paid
-                                ? isIncome
-                                  ? 'RECEBIDO'
-                                  : 'PAGO'
-                                : isOverdue
-                                  ? 'ATRASADO'
-                                  : 'PENDENTE'}
-                            </Text>
-                          </Badge>
-
-                          <Text style={TABULAR_NUMS} className="text-[10px] text-muted-foreground">
+                        <View className="mt-1 flex-row flex-wrap items-center gap-1.5">
+                          <BankBadge name={accName} type={acc?.type} size="xs" />
+                          <Text className="text-[11px] text-muted-foreground" numberOfLines={1}>
+                            {isTransfer ? `${accName} → ${destAccName ?? 'Destino'}` : accName}
+                          </Text>
+                          <Text className="text-[11px] text-muted-foreground">•</Text>
+                          <Text style={TABULAR_NUMS} className="text-[11px] text-muted-foreground">
                             {formatDateSafe(tx.date)}
                           </Text>
-
-                          {tx.installmentNumber && tx.totalInstallments ? (
-                            <Badge variant="secondary" className="h-4 px-1.5 py-0">
-                              <Text style={TABULAR_NUMS} className="text-[9px] font-bold">
-                                Parcela {tx.installmentNumber}/{tx.totalInstallments}
-                              </Text>
-                            </Badge>
-                          ) : null}
-
-                          {tx.isRecurring || tx.recurring || tx.recurringId ? (
-                            <Badge variant="secondary" className="h-4 px-1.5 py-0">
-                              <Icon as={RepeatIcon} className="mr-1 size-2.5 text-primary" />
-                              <Text className="text-[9px] font-bold text-primary">FIXO</Text>
-                            </Badge>
-                          ) : null}
                         </View>
+
+                        {(tx.installmentNumber && tx.totalInstallments) ||
+                        tx.isRecurring ||
+                        tx.recurring ||
+                        tx.recurringId ? (
+                          <View className="mt-1 flex-row items-center gap-1.5">
+                            {tx.installmentNumber && tx.totalInstallments ? (
+                              <Badge variant="secondary" className="h-4 px-1.5 py-0">
+                                <Text style={TABULAR_NUMS} className="text-[9px] font-bold">
+                                  {tx.installmentNumber}/{tx.totalInstallments}
+                                </Text>
+                              </Badge>
+                            ) : null}
+                            {tx.isRecurring || tx.recurring || tx.recurringId ? (
+                              <Badge variant="secondary" className="h-4 px-1.5 py-0">
+                                <Icon as={RepeatIcon} className="mr-1 size-2.5 text-primary" />
+                                <Text className="text-[9px] font-bold text-primary">
+                                  Recorrente
+                                </Text>
+                              </Badge>
+                            ) : null}
+                          </View>
+                        ) : null}
                       </View>
                     </View>
 
+                    {/* Right: Amount + Status Badge + Actions */}
                     <View className="items-end">
                       <Text
                         style={TABULAR_NUMS}
-                        className={`text-sm font-extrabold ${
+                        className={`text-xs font-semibold ${
                           isIncome
                             ? 'text-primary'
-                            : isTransfer
-                              ? 'text-sky-400'
+                            : isExpense
+                              ? 'text-destructive'
                               : 'text-foreground'
                         }`}>
-                        {isIncome ? '+' : isTransfer ? '⇄ ' : '-'}
+                        {isExpense ? '− ' : isIncome ? '+ ' : ''}
                         {formatBrlCurrency(Math.abs(tx.amount), privateMode)}
                       </Text>
 
-                      <View className="mt-2 flex-row items-center gap-1">
+                      <View className="mt-1.5 flex-row items-center gap-1">
+                        {/* Status Pill matching web getTransactionStatusConfig */}
+                        <View
+                          className={`flex-row items-center gap-1 rounded-full border px-2 py-0.5 ${
+                            tx.paid
+                              ? 'border-primary/25 bg-primary/10'
+                              : isOverdue
+                                ? 'border-destructive/30 bg-destructive/10'
+                                : 'border-border/80 bg-background'
+                          }`}>
+                          <View
+                            className={`h-1.5 w-1.5 rounded-full ${
+                              tx.paid
+                                ? 'bg-primary'
+                                : isOverdue
+                                  ? 'bg-destructive'
+                                  : 'bg-amber-500'
+                            }`}
+                          />
+                          <Text
+                            className={`text-[10px] font-medium ${
+                              tx.paid
+                                ? 'text-primary'
+                                : isOverdue
+                                  ? 'text-destructive'
+                                  : 'text-muted-foreground'
+                            }`}>
+                            {tx.paid ? 'Pago' : isOverdue ? 'Atrasado' : 'Pendente'}
+                          </Text>
+                        </View>
+
                         {!isTransfer ? (
                           <Button
+                            variant="ghost"
                             size="sm"
-                            variant={tx.paid ? 'ghost' : 'outline'}
-                            className="h-7 px-2"
+                            className="h-6 px-2"
                             onPress={() => void optimisticTogglePay(tx, !tx.paid)}>
-                            <Text className="text-[10px] font-bold text-primary">
-                              {tx.paid ? 'Estornar' : isIncome ? 'Receber' : 'Pagar'}
+                            <Text className="text-[10px] font-semibold text-foreground">
+                              {tx.paid ? 'Desfazer' : 'Baixar'}
                             </Text>
                           </Button>
                         ) : null}
@@ -405,28 +425,28 @@ export default function TransactionsScreen() {
                         <Button
                           size="icon"
                           variant="ghost"
-                          className="h-7 w-7"
+                          className="h-6 w-6"
                           onPress={() => handleOpenEdit(tx)}
-                          accessibilityLabel="Editar lançamento">
-                          <Icon as={PencilIcon} className="size-3.5 text-muted-foreground" />
+                          accessibilityLabel={`Editar lançamento ${tx.description}`}>
+                          <Icon as={PencilIcon} className="size-3 text-muted-foreground" />
                         </Button>
 
                         <Button
                           size="icon"
                           variant="ghost"
-                          className="h-7 w-7"
+                          className="h-6 w-6"
                           onPress={() => setDeleteTarget(tx)}
-                          accessibilityLabel="Excluir lançamento">
-                          <Icon as={Trash2Icon} className="size-3.5 text-destructive" />
+                          accessibilityLabel={`Excluir lançamento ${tx.description}`}>
+                          <Icon as={Trash2Icon} className="size-3 text-destructive" />
                         </Button>
                       </View>
                     </View>
                   </View>
-                </CardContent>
-              </Card>
-            );
-          })
-        )}
+                );
+              })
+            )}
+          </CardContent>
+        </Card>
       </ScrollView>
 
       <FinanceFormModal
@@ -443,10 +463,10 @@ export default function TransactionsScreen() {
       <AlertDialog open={Boolean(deleteTarget)} onOpenChange={(o) => !o && setDeleteTarget(null)}>
         <AlertDialogContent className="border-border bg-card">
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir Lançamento?</AlertDialogTitle>
+            <AlertDialogTitle>Excluir lançamento?</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja remover &ldquo;{deleteTarget?.description}&rdquo;? O saldo da
-              conta será recalculado imediatamente.
+              Tem certeza que deseja remover &ldquo;{deleteTarget?.description}&rdquo;? Esta ação
+              não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-row justify-end gap-2">

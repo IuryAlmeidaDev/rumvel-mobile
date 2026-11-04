@@ -1,17 +1,21 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
+  ArrowDownLeftIcon,
   CopyIcon,
-  FolderKanbanIcon,
+  GaugeIcon,
   PencilIcon,
   PieChartIcon,
   PlusIcon,
   TagIcon,
+  TagsIcon,
   TargetIcon,
   Trash2Icon,
+  WalletIcon,
 } from 'lucide-react-native';
 import { AppHeader } from '@/components/finance/AppHeader';
+import { CategoryBadge } from '@/components/finance/CategoryBadge';
 import { FinanceFormModal, type FinanceFormKind } from '@/components/finance/FinanceFormModal';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -53,6 +57,26 @@ export default function BudgetsScreen() {
   const budgets = dashboardData?.budgets ?? [];
   const goals = dashboardData?.goals ?? [];
   const tags = dashboardData?.tags ?? [];
+
+  const budgetOverviewMetrics = useMemo(() => {
+    if (!budgets.length) return null;
+    const totalBudgeted = budgets.reduce((acc, b) => acc + (Number(b.limitAmount) || 0), 0);
+    const totalSpent = budgets.reduce((acc, b) => acc + (Number(b.spent) || 0), 0);
+    const remaining = totalBudgeted - totalSpent;
+    const percentUsed = totalBudgeted > 0 ? Math.round((totalSpent / totalBudgeted) * 100) : 0;
+    const exceededCount = budgets.filter(
+      (b) => (Number(b.spent) || 0) > (Number(b.limitAmount) || 0)
+    ).length;
+
+    return {
+      totalBudgeted,
+      totalSpent,
+      remaining,
+      percentUsed,
+      exceededCount,
+      totalCount: budgets.length,
+    };
+  }, [budgets]);
 
   const getNextYearMonth = () => {
     const [yStr, mStr] = month.split('-');
@@ -114,14 +138,11 @@ export default function BudgetsScreen() {
     await refreshFinance();
   };
 
-  const totalBudgetLimit = budgets.reduce((s, b) => s + b.limitAmount, 0);
-  const totalBudgetSpent = budgets.reduce((s, b) => s + b.spent, 0);
-
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top']}>
       <AppHeader
-        title="Orçamentos, Metas & Categorias"
-        subtitle="Controle de tetos de gastos, metas de receita e taxonomia"
+        title="Orçamentos"
+        subtitle="Dê um destino para cada parte do seu dinheiro."
         showMarketStrip={false}
       />
 
@@ -133,7 +154,7 @@ export default function BudgetsScreen() {
           <View className="flex-row items-center justify-between rounded-lg border border-primary/40 bg-primary/15 px-3 py-2">
             <Text className="flex-1 text-xs font-semibold text-foreground">{feedback}</Text>
             <Button variant="ghost" size="sm" className="h-6 px-2" onPress={() => setFeedback(null)}>
-              <Text className="text-[10px] font-bold text-primary">Fechar</Text>
+              <Text className="text-[10px] font-bold text-primary">Dispensar</Text>
             </Button>
           </View>
         ) : null}
@@ -141,293 +162,409 @@ export default function BudgetsScreen() {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="w-full flex-row border border-border bg-card">
             <TabsTrigger value="budgets" className="flex-1">
-              <Text className="text-xs font-bold">Orçamentos ({budgets.length})</Text>
+              <Text className="text-xs font-semibold">Orçamentos ({budgets.length})</Text>
             </TabsTrigger>
             <TabsTrigger value="goals" className="flex-1">
-              <Text className="text-xs font-bold">Metas ({goals.length})</Text>
+              <Text className="text-xs font-semibold">Metas ({goals.length})</Text>
             </TabsTrigger>
             <TabsTrigger value="categories" className="flex-1">
-              <Text className="text-xs font-bold">Categorias</Text>
+              <Text className="text-xs font-semibold">Categorias</Text>
             </TabsTrigger>
           </TabsList>
 
           {/* TAB 1: BUDGETS */}
           <TabsContent value="budgets" className="mt-3 gap-3">
+            {/* 4 Overview Metrics (matching web budgetOverviewMetrics) */}
+            {budgetOverviewMetrics ? (
+              <View className="gap-3">
+                <View className="flex-row gap-3">
+                  <Card className="flex-1 border-border bg-card">
+                    <CardContent className="gap-1.5 p-3.5">
+                      <View className="flex-row items-center justify-between">
+                        <Text className="text-xs font-medium text-muted-foreground">
+                          Total planejado
+                        </Text>
+                        <Icon as={TargetIcon} className="size-4 text-muted-foreground" />
+                      </View>
+                      <Text style={TABULAR_NUMS} className="text-lg font-bold text-foreground">
+                        {formatBrlCurrency(budgetOverviewMetrics.totalBudgeted, privateMode)}
+                      </Text>
+                      <Text className="text-[11px] text-muted-foreground">
+                        {budgetOverviewMetrics.totalCount}{' '}
+                        {budgetOverviewMetrics.totalCount === 1
+                          ? 'limite definido'
+                          : 'limites definidos'}{' '}
+                        no mês
+                      </Text>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="flex-1 border-border bg-card">
+                    <CardContent className="gap-1.5 p-3.5">
+                      <View className="flex-row items-center justify-between">
+                        <Text className="text-xs font-medium text-muted-foreground">
+                          Gasto realizado
+                        </Text>
+                        <Icon as={ArrowDownLeftIcon} className="size-4 text-muted-foreground" />
+                      </View>
+                      <Text
+                        style={TABULAR_NUMS}
+                        className={`text-lg font-bold ${
+                          budgetOverviewMetrics.totalSpent > budgetOverviewMetrics.totalBudgeted
+                            ? 'text-destructive'
+                            : 'text-foreground'
+                        }`}>
+                        {formatBrlCurrency(budgetOverviewMetrics.totalSpent, privateMode)}
+                      </Text>
+                      <Text className="text-[11px] text-muted-foreground">
+                        Nas categorias com teto
+                      </Text>
+                    </CardContent>
+                  </Card>
+                </View>
+
+                <View className="flex-row gap-3">
+                  <Card className="flex-1 border-border bg-card">
+                    <CardContent className="gap-1.5 p-3.5">
+                      <View className="flex-row items-center justify-between">
+                        <Text className="text-xs font-medium text-muted-foreground">
+                          Saldo disponível
+                        </Text>
+                        <Icon as={WalletIcon} className="size-4 text-muted-foreground" />
+                      </View>
+                      <Text
+                        style={TABULAR_NUMS}
+                        className={`text-lg font-bold ${
+                          budgetOverviewMetrics.remaining >= 0
+                            ? 'text-primary'
+                            : 'text-destructive'
+                        }`}>
+                        {formatBrlCurrency(budgetOverviewMetrics.remaining, privateMode)}
+                      </Text>
+                      <Text className="text-[11px] text-muted-foreground">
+                        {budgetOverviewMetrics.remaining >= 0
+                          ? 'Margem livre para gastar'
+                          : 'Teto total ultrapassado'}
+                      </Text>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="flex-1 border-border bg-card">
+                    <CardContent className="gap-1.5 p-3.5">
+                      <View className="flex-row items-center justify-between">
+                        <Text className="text-xs font-medium text-muted-foreground">
+                          Execução global
+                        </Text>
+                        <Icon as={GaugeIcon} className="size-4 text-muted-foreground" />
+                      </View>
+                      <Text style={TABULAR_NUMS} className="text-lg font-bold text-foreground">
+                        {budgetOverviewMetrics.percentUsed}%
+                      </Text>
+                      <Text className="text-[11px] text-muted-foreground">
+                        {budgetOverviewMetrics.exceededCount > 0
+                          ? `${budgetOverviewMetrics.exceededCount} teto(s) estourado(s)`
+                          : 'Todos dentro do limite'}
+                      </Text>
+                    </CardContent>
+                  </Card>
+                </View>
+              </View>
+            ) : null}
+
             <Card className="border-border bg-card">
-              <CardContent className="flex-row items-center justify-between p-4">
-                <View>
-                  <Text className="text-[11px] font-bold uppercase text-muted-foreground">
-                    Consolidado de Orçamentos ({month})
-                  </Text>
-                  <Text style={TABULAR_NUMS} className="mt-0.5 text-base font-extrabold text-foreground">
-                    {formatBrlCurrency(totalBudgetSpent, privateMode)}{' '}
-                    <Text className="text-xs font-normal text-muted-foreground">
-                      de {formatBrlCurrency(totalBudgetLimit, privateMode)}
-                    </Text>
-                  </Text>
+              <CardHeader className="flex-row items-center justify-between pb-2">
+                <View className="flex-1 pr-2">
+                  <CardTitle className="text-base font-bold text-foreground">
+                    Limites por categoria
+                  </CardTitle>
+                  <CardDescription className="text-xs text-muted-foreground">
+                    Acompanhe a evolução mensal de cada orçamento.
+                  </CardDescription>
                 </View>
                 <Button size="sm" onPress={() => handleOpenNew('budget')}>
                   <Icon as={PlusIcon} className="mr-1.5 size-3.5 text-primary-foreground" />
-                  <Text className="text-xs font-bold">Novo Teto</Text>
+                  <Text className="text-xs font-semibold text-primary-foreground">
+                    Novo orçamento
+                  </Text>
                 </Button>
-              </CardContent>
-            </Card>
+              </CardHeader>
 
-            {budgets.length === 0 ? (
-              <Card className="border-dashed border-border bg-card">
-                <CardContent className="items-center gap-2 py-8">
-                  <Icon as={PieChartIcon} className="size-7 text-muted-foreground" />
-                  <Text className="text-sm font-bold text-foreground">
-                    Nenhum orçamento definido
-                  </Text>
-                  <Text className="text-center text-xs text-muted-foreground">
-                    Crie tetos mensais por categoria para acompanhar seu ritmo de gastos.
-                  </Text>
-                </CardContent>
-              </Card>
-            ) : (
-              budgets.map((b) => {
-                const cat = categories.find((c) => c.id === b.categoryId);
-                const pct = Math.min(100, Math.max(0, Math.round(b.progress)));
-                const isExceeded = b.progress >= 100 || b.status === 'EXCEEDED';
-                const isWarning = !isExceeded && b.progress >= 80;
+              <CardContent className="gap-3 pt-2">
+                {budgets.length === 0 ? (
+                  <View className="items-center gap-2 py-8">
+                    <Icon as={PieChartIcon} className="size-7 text-muted-foreground" />
+                    <Text className="text-sm font-bold text-foreground">
+                      Planeje seu próximo passo
+                    </Text>
+                    <Text className="text-center text-xs text-muted-foreground">
+                      Crie limites por categoria para acompanhar seus gastos.
+                    </Text>
+                  </View>
+                ) : (
+                  budgets.map((b, idx) => {
+                    const cat = categories.find((c) => c.id === b.categoryId);
+                    const parentCat = cat?.parentId
+                      ? categories.find((c) => c.id === cat.parentId)
+                      : undefined;
+                    const pct = Math.min(100, Math.max(0, Math.round(b.progress)));
+                    const isExceeded = b.progress > 100 || b.status === 'EXCEEDED';
+                    const isWarning = !isExceeded && b.progress > 80;
 
-                return (
-                  <Card key={b.id} className="border-border bg-card">
-                    <CardContent className="gap-2.5 p-4">
-                      <View className="flex-row items-center justify-between">
-                        <View className="flex-row items-center gap-2">
-                          <View
-                            style={{ backgroundColor: cat?.color ?? '#00d494' }}
-                            className="h-3 w-3 rounded-full"
-                          />
-                          <Text className="text-sm font-bold text-foreground">
-                            {cat?.name ?? 'Categoria'}
-                          </Text>
-                        </View>
-
-                        <View className="flex-row items-center gap-1">
-                          <Badge
-                            variant={
-                              isExceeded ? 'destructive' : isWarning ? 'secondary' : 'outline'
-                            }
-                            className="h-5 px-1.5 py-0">
-                            <Text style={TABULAR_NUMS} className="text-[10px] font-bold">
-                              {Math.round(b.progress)}%
+                    return (
+                      <View
+                        key={b.id}
+                        className={`gap-2.5 py-2.5 ${
+                          idx > 0 ? 'border-t border-border/60' : ''
+                        }`}>
+                        <View className="flex-row items-center justify-between">
+                          <View className="flex-row items-center gap-2.5">
+                            <CategoryBadge
+                              name={cat?.name ?? 'Categoria'}
+                              parentName={parentCat?.name}
+                              iconSlug={cat?.iconSlug}
+                              color={cat?.color}
+                              size="sm"
+                            />
+                            <Text className="text-sm font-semibold text-foreground">
+                              {cat?.name ?? 'Categoria'}
                             </Text>
-                          </Badge>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-7 w-7"
-                            onPress={() => void handleCopyBudgetNextMonth(b)}
-                            accessibilityLabel="Copiar para próximo mês">
-                            <Icon as={CopyIcon} className="size-3.5 text-muted-foreground" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-7 w-7"
-                            onPress={() => handleEditBudget(b)}
-                            accessibilityLabel="Editar orçamento">
-                            <Icon as={PencilIcon} className="size-3.5 text-muted-foreground" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-7 w-7"
-                            onPress={() => void handleDeleteBudget(b.id)}
-                            accessibilityLabel="Excluir orçamento">
-                            <Icon as={Trash2Icon} className="size-3.5 text-destructive" />
-                          </Button>
+                          </View>
+
+                          <View className="flex-row items-center gap-1">
+                            <Text
+                              style={TABULAR_NUMS}
+                              className={`mr-1 text-xs ${
+                                isExceeded
+                                  ? 'font-semibold text-destructive'
+                                  : 'text-muted-foreground'
+                              }`}>
+                              {Math.round(b.progress)}% usado
+                            </Text>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7"
+                              onPress={() => void handleCopyBudgetNextMonth(b)}
+                              accessibilityLabel="Copiar para próximo mês">
+                              <Icon as={CopyIcon} className="size-3.5 text-muted-foreground" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7"
+                              onPress={() => handleEditBudget(b)}
+                              accessibilityLabel="Editar orçamento">
+                              <Icon as={PencilIcon} className="size-3.5 text-muted-foreground" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7"
+                              onPress={() => void handleDeleteBudget(b.id)}
+                              accessibilityLabel="Excluir orçamento">
+                              <Icon as={Trash2Icon} className="size-3.5 text-destructive" />
+                            </Button>
+                          </View>
                         </View>
-                      </View>
 
-                      <Progress
-                        value={pct}
-                        indicatorClassName={
-                          isExceeded
-                            ? 'bg-destructive'
-                            : isWarning
-                              ? 'bg-amber-500'
-                              : 'bg-primary'
-                        }
-                        className="h-2.5"
-                      />
+                        <Progress
+                          value={pct}
+                          indicatorClassName={
+                            isExceeded
+                              ? 'bg-destructive'
+                              : isWarning
+                                ? 'bg-amber-500'
+                                : 'bg-primary'
+                          }
+                          className="h-2"
+                        />
 
-                      <View className="flex-row items-center justify-between">
-                        <Text style={TABULAR_NUMS} className="text-xs text-muted-foreground">
-                          Utilizado:{' '}
-                          <Text className="font-bold text-foreground">
+                        <View className="flex-row items-center justify-between">
+                          <Text style={TABULAR_NUMS} className="text-xs text-muted-foreground">
                             {formatBrlCurrency(b.spent, privateMode)}
                           </Text>
-                        </Text>
-                        <Text style={TABULAR_NUMS} className="text-xs text-muted-foreground">
-                          Disponível:{' '}
-                          <Text
-                            className={`font-bold ${
-                              b.available < 0 ? 'text-destructive' : 'text-primary'
-                            }`}>
-                            {formatBrlCurrency(b.available, privateMode)}
+                          <Text style={TABULAR_NUMS} className="text-xs text-muted-foreground">
+                            de {formatBrlCurrency(b.limitAmount, privateMode)}
                           </Text>
-                        </Text>
-                        <Text style={TABULAR_NUMS} className="text-xs font-bold text-foreground">
-                          Teto: {formatBrlCurrency(b.limitAmount, privateMode)}
-                        </Text>
+                        </View>
                       </View>
-                    </CardContent>
-                  </Card>
-                );
-              })
-            )}
+                    );
+                  })
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* TAB 2: INCOME GOALS */}
           <TabsContent value="goals" className="mt-3 gap-3">
             <Card className="border-border bg-card">
-              <CardContent className="flex-row items-center justify-between p-4">
+              <CardHeader className="flex-row items-center justify-between pb-2">
                 <View className="flex-1 pr-2">
-                  <Text className="text-sm font-bold text-foreground">
-                    Metas Mensais de Receita
-                  </Text>
-                  <Text className="text-xs text-muted-foreground">
-                    Acompanhe o progresso de faturamento, salário e dividendos.
-                  </Text>
+                  <CardTitle className="text-base font-bold text-foreground">
+                    Metas de receita
+                  </CardTitle>
+                  <CardDescription className="text-xs text-muted-foreground">
+                    Transforme seus planos em progresso.
+                  </CardDescription>
                 </View>
                 <Button size="sm" onPress={() => handleOpenNew('goal')}>
                   <Icon as={PlusIcon} className="mr-1.5 size-3.5 text-primary-foreground" />
-                  <Text className="text-xs font-bold">Nova Meta</Text>
+                  <Text className="text-xs font-semibold text-primary-foreground">Nova meta</Text>
                 </Button>
-              </CardContent>
-            </Card>
+              </CardHeader>
 
-            {goals.length === 0 ? (
-              <Card className="border-dashed border-border bg-card">
-                <CardContent className="items-center gap-2 py-8">
-                  <Icon as={TargetIcon} className="size-7 text-muted-foreground" />
-                  <Text className="text-sm font-bold text-foreground">
-                    Nenhuma meta de receita criada
-                  </Text>
-                  <Text className="text-center text-xs text-muted-foreground">
-                    Defina alvos mensais para suas fontes de renda.
-                  </Text>
-                </CardContent>
-              </Card>
-            ) : (
-              goals.map((g) => {
-                const cat = categories.find((c) => c.id === g.categoryId);
-                const pct = Math.min(100, Math.max(0, Math.round(g.progress)));
-                return (
-                  <Card key={g.id} className="border-border bg-card">
-                    <CardContent className="gap-2.5 p-4">
-                      <View className="flex-row items-center justify-between">
-                        <Text className="text-sm font-bold text-foreground">
-                          {cat?.name ?? 'Receita'}
-                        </Text>
-                        <View className="flex-row items-center gap-1">
-                          <Badge variant="secondary" className="h-5 px-1.5 py-0">
-                            <Text style={TABULAR_NUMS} className="text-[10px] font-bold text-primary">
-                              {Math.round(g.progress)}% atingido
+              <CardContent className="gap-3 pt-2">
+                {goals.length === 0 ? (
+                  <View className="items-center gap-2 py-8">
+                    <Icon as={TargetIcon} className="size-7 text-muted-foreground" />
+                    <Text className="text-sm font-bold text-foreground">
+                      Nenhuma meta de receita criada
+                    </Text>
+                    <Text className="text-center text-xs text-muted-foreground">
+                      Defina alvos mensais para suas fontes de renda.
+                    </Text>
+                  </View>
+                ) : (
+                  goals.map((g, idx) => {
+                    const cat = categories.find((c) => c.id === g.categoryId);
+                    const pct = Math.min(100, Math.max(0, Math.round(g.progress)));
+                    return (
+                      <View
+                        key={g.id}
+                        className={`gap-2.5 py-2.5 ${
+                          idx > 0 ? 'border-t border-border/60' : ''
+                        }`}>
+                        <View className="flex-row items-center justify-between">
+                          <View className="flex-row items-center gap-2.5">
+                            <CategoryBadge
+                              name={cat?.name ?? 'Receita'}
+                              type="INCOME"
+                              iconSlug={cat?.iconSlug}
+                              color={cat?.color}
+                              size="sm"
+                            />
+                            <Text className="text-sm font-semibold text-foreground">
+                              {cat?.name ?? 'Receita'}
                             </Text>
-                          </Badge>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-7 w-7"
-                            onPress={() => void handleCopyGoalNextMonth(g)}>
-                            <Icon as={CopyIcon} className="size-3.5 text-muted-foreground" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-7 w-7"
-                            onPress={() => handleEditGoal(g)}>
-                            <Icon as={PencilIcon} className="size-3.5 text-muted-foreground" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-7 w-7"
-                            onPress={() => void handleDeleteGoal(g.id)}>
-                            <Icon as={Trash2Icon} className="size-3.5 text-destructive" />
-                          </Button>
+                          </View>
+                          <View className="flex-row items-center gap-1">
+                            <Badge variant="secondary" className="h-5 px-1.5 py-0">
+                              <Text
+                                style={TABULAR_NUMS}
+                                className="text-[10px] font-bold text-primary">
+                                {Math.round(g.progress)}% atingido
+                              </Text>
+                            </Badge>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7"
+                              onPress={() => void handleCopyGoalNextMonth(g)}>
+                              <Icon as={CopyIcon} className="size-3.5 text-muted-foreground" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7"
+                              onPress={() => handleEditGoal(g)}>
+                              <Icon as={PencilIcon} className="size-3.5 text-muted-foreground" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7"
+                              onPress={() => void handleDeleteGoal(g.id)}>
+                              <Icon as={Trash2Icon} className="size-3.5 text-destructive" />
+                            </Button>
+                          </View>
+                        </View>
+
+                        <Progress value={pct} className="h-2" />
+
+                        <View className="flex-row justify-between">
+                          <Text style={TABULAR_NUMS} className="text-xs text-muted-foreground">
+                            Recebido:{' '}
+                            <Text className="font-semibold text-primary">
+                              {formatBrlCurrency(g.received, privateMode)}
+                            </Text>
+                          </Text>
+                          <Text style={TABULAR_NUMS} className="text-xs text-muted-foreground">
+                            Alvo: {formatBrlCurrency(g.targetAmount, privateMode)}
+                          </Text>
                         </View>
                       </View>
-
-                      <Progress value={pct} className="h-2.5" />
-
-                      <View className="flex-row justify-between">
-                        <Text style={TABULAR_NUMS} className="text-xs text-muted-foreground">
-                          Recebido:{' '}
-                          <Text className="font-bold text-primary">
-                            {formatBrlCurrency(g.received, privateMode)}
-                          </Text>
-                        </Text>
-                        <Text style={TABULAR_NUMS} className="text-xs font-bold text-foreground">
-                          Alvo: {formatBrlCurrency(g.targetAmount, privateMode)}
-                        </Text>
-                      </View>
-                    </CardContent>
-                  </Card>
-                );
-              })
-            )}
+                    );
+                  })
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* TAB 3: CATEGORIES & TAGS */}
           <TabsContent value="categories" className="mt-3 gap-4">
             <Card className="border-border bg-card">
               <CardHeader className="flex-row items-center justify-between pb-2">
-                <View>
+                <View className="flex-1 pr-2">
                   <CardTitle className="text-base font-bold text-foreground">
                     Categorias ({categories.length})
                   </CardTitle>
                   <CardDescription className="text-xs text-muted-foreground">
-                    Classificação estrutural de despesas e receitas.
+                    Uma organização que faz sentido para você.
                   </CardDescription>
                 </View>
                 <Button size="sm" onPress={() => handleOpenNew('category')}>
-                  <Icon as={FolderKanbanIcon} className="mr-1.5 size-3.5 text-primary-foreground" />
-                  <Text className="text-xs font-bold">Nova Categoria</Text>
+                  <Icon as={TagsIcon} className="mr-1.5 size-3.5 text-primary-foreground" />
+                  <Text className="text-xs font-semibold text-primary-foreground">
+                    Nova categoria
+                  </Text>
                 </Button>
               </CardHeader>
 
               <CardContent className="gap-2 pt-2">
-                {categories.map((cat) => (
-                  <View
-                    key={cat.id}
-                    className="flex-row items-center justify-between rounded-lg border border-border bg-background/60 px-3 py-2">
-                    <View className="flex-row items-center gap-2.5">
-                      <View
-                        style={{ backgroundColor: cat.color ?? '#00d494' }}
-                        className="h-3 w-3 rounded-full"
-                      />
-                      <Text className="text-xs font-bold text-foreground">{cat.name}</Text>
-                      <Badge variant="outline" className="h-4 px-1.5 py-0">
-                        <Text className="text-[9px] font-bold">
-                          {cat.type.toUpperCase() === 'INCOME' ? 'RECEITA' : 'DESPESA'}
-                        </Text>
-                      </Badge>
+                {categories.map((cat) => {
+                  const parentCat = cat.parentId
+                    ? categories.find((c) => c.id === cat.parentId)
+                    : undefined;
+                  return (
+                    <View
+                      key={cat.id}
+                      className="flex-row items-center justify-between rounded-lg border border-border bg-background/60 px-3 py-2.5">
+                      <View className="flex-row items-center gap-2.5">
+                        <CategoryBadge
+                          name={cat.name}
+                          parentName={parentCat?.name}
+                          type={cat.type}
+                          iconSlug={cat.iconSlug}
+                          color={cat.color}
+                          size="sm"
+                        />
+                        <Text className="text-xs font-semibold text-foreground">{cat.name}</Text>
+                        <Badge variant="outline" className="h-4 px-1.5 py-0">
+                          <Text className="text-[9px] font-bold">
+                            {cat.type.toUpperCase() === 'INCOME' ? 'Receita' : 'Despesa'}
+                          </Text>
+                        </Badge>
+                      </View>
+                      {!cat.system ? (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7"
+                          onPress={() => void handleDeleteCategory(cat.id)}>
+                          <Icon as={Trash2Icon} className="size-3.5 text-destructive" />
+                        </Button>
+                      ) : null}
                     </View>
-                    {!cat.system ? (
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-7 w-7"
-                        onPress={() => void handleDeleteCategory(cat.id)}>
-                        <Icon as={Trash2Icon} className="size-3.5 text-destructive" />
-                      </Button>
-                    ) : null}
-                  </View>
-                ))}
+                  );
+                })}
               </CardContent>
             </Card>
 
             <Card className="border-border bg-card">
               <CardHeader className="flex-row items-center justify-between pb-2">
-                <View>
+                <View className="flex-1 pr-2">
                   <CardTitle className="text-base font-bold text-foreground">
-                    Etiquetas / Tags ({tags.length})
+                    Etiquetas ({tags.length})
                   </CardTitle>
                   <CardDescription className="text-xs text-muted-foreground">
                     Marcadores transversais para projetos, centros de custo e viagens.
@@ -435,7 +572,7 @@ export default function BudgetsScreen() {
                 </View>
                 <Button size="sm" variant="outline" onPress={() => handleOpenNew('tag')}>
                   <Icon as={TagIcon} className="mr-1.5 size-3.5 text-foreground" />
-                  <Text className="text-xs font-bold">Nova Tag</Text>
+                  <Text className="text-xs font-semibold">Nova etiqueta</Text>
                 </Button>
               </CardHeader>
 

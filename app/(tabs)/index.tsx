@@ -3,19 +3,21 @@ import { ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
-  AlertTriangleIcon,
   ArrowDownLeftIcon,
+  ArrowRightIcon,
   ArrowRightLeftIcon,
   ArrowUpRightIcon,
-  BrainCircuitIcon,
+  CalendarIcon,
   CheckCircle2Icon,
   ClockIcon,
+  PieChartIcon,
   PlusIcon,
-  TrendingDownIcon,
-  TrendingUpIcon,
+  SparklesIcon,
   WalletIcon,
 } from 'lucide-react-native';
 import { AppHeader } from '@/components/finance/AppHeader';
+import { BankBadge } from '@/components/finance/BankBadge';
+import { CategoryBadge } from '@/components/finance/CategoryBadge';
 import { FinanceFormModal, type FinanceFormKind } from '@/components/finance/FinanceFormModal';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -23,12 +25,12 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
 import { Icon } from '@/components/ui/icon';
 import { Progress } from '@/components/ui/progress';
-import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Text } from '@/components/ui/text';
 import { useApp } from '@/context/AppContext';
@@ -62,14 +64,30 @@ export default function DashboardScreen() {
     setModalOpen(true);
   };
 
+  const openNewAccount = () => {
+    setModalKind('account');
+    setModalOpen(true);
+  };
+
   const accounts = dashboardData?.accounts ?? [];
   const categories = dashboardData?.categories ?? [];
   const transactions = dashboardData?.transactions ?? [];
   const budgets = dashboardData?.budgets ?? [];
 
   const categoryMap = useMemo(() => {
-    const map = new Map<string, { name: string; color?: string }>();
-    categories.forEach((c) => map.set(c.id, { name: c.name, color: c.color }));
+    const map = new Map<
+      string,
+      { name: string; color?: string; iconSlug?: string; parentId?: string | null; type?: string }
+    >();
+    categories.forEach((c) =>
+      map.set(c.id, {
+        name: c.name,
+        color: c.color,
+        iconSlug: c.iconSlug,
+        parentId: c.parentId,
+        type: c.type,
+      })
+    );
     return map;
   }, [categories]);
 
@@ -79,10 +97,37 @@ export default function DashboardScreen() {
     return map;
   }, [accounts]);
 
+  const dailyAverageMeta = useMemo(() => {
+    const expense = dashboardData?.expense ?? 0;
+    if (expense <= 0) {
+      return { amount: 0, note: 'Sem despesas registradas no mês' };
+    }
+    const [yearStr, monthStr] = month.split('-');
+    const year = parseInt(yearStr, 10) || new Date().getFullYear();
+    const m = parseInt(monthStr, 10) || 1;
+    const daysInMonth = new Date(year, m, 0).getDate();
+    const now = new Date();
+    const isCurrentMonth = now.getFullYear() === year && now.getMonth() + 1 === m;
+    const daysCount = isCurrentMonth
+      ? Math.max(1, Math.min(now.getDate(), daysInMonth))
+      : daysInMonth;
+    const avg = expense / daysCount;
+    const note = isCurrentMonth
+      ? `Ritmo em ${daysCount} ${daysCount === 1 ? 'dia decorrido' : 'dias decorridos'}`
+      : `Média nos ${daysInMonth} dias do mês`;
+    return { amount: avg, note };
+  }, [dashboardData?.expense, month]);
+
   const unpaidTransactions = useMemo(() => {
     return transactions
       .filter((t) => !t.paid && t.type.toUpperCase() !== 'TRANSFER')
       .sort((a, b) => a.date.localeCompare(b.date))
+      .slice(0, 5);
+  }, [transactions]);
+
+  const recentTransactions = useMemo(() => {
+    return [...transactions]
+      .sort((a, b) => b.date.localeCompare(a.date))
       .slice(0, 6);
   }, [transactions]);
 
@@ -100,11 +145,14 @@ export default function DashboardScreen() {
     return Array.from(byCat.entries())
       .map(([catId, amount]) => {
         const info = categoryMap.get(catId);
+        const parentInfo = info?.parentId ? categoryMap.get(info.parentId) : undefined;
         const pct = Math.round((amount / totalExpense) * 100);
         return {
           catId,
-          name: info?.name ?? 'Sem Categoria',
-          color: info?.color ?? '#00d494',
+          name: info?.name ?? 'Sem categoria',
+          parentName: parentInfo?.name,
+          iconSlug: info?.iconSlug,
+          color: info?.color,
           amount,
           pct,
         };
@@ -113,8 +161,6 @@ export default function DashboardScreen() {
       .slice(0, 5);
   }, [transactions, categoryMap]);
 
-  const netMonthResult = (dashboardData?.income ?? 0) - (dashboardData?.expense ?? 0);
-  const dailyPace = (dashboardData?.expense ?? 0) / 30;
   const todayStr = getTodayString();
 
   const handleTogglePay = async (tx: (typeof transactions)[number]) => {
@@ -128,7 +174,10 @@ export default function DashboardScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top']}>
-      <AppHeader />
+      <AppHeader
+        title="Seu dinheiro, com clareza."
+        subtitle="Um olhar completo para suas finanças. Tudo no seu ritmo."
+      />
 
       <ScrollView
         className="flex-1"
@@ -145,268 +194,254 @@ export default function DashboardScreen() {
           </Card>
         ) : null}
 
-        {/* Primary Consolidated Balance Card */}
-        <Card className="border-border bg-card">
-          <CardHeader className="pb-2">
-            <View className="flex-row items-center justify-between">
-              <View className="flex-row items-center gap-2">
-                <Icon as={WalletIcon} className="size-4 text-primary" />
-                <Text className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Saldo Consolidado Realizado
-                </Text>
-              </View>
-              <Badge variant="outline" className="border-primary/40 bg-primary/10">
-                <Text className="text-[10px] font-bold text-primary">
-                  {dashboardData?.monthLabel ?? month}
-                </Text>
-              </Badge>
-            </View>
-
-            {isLoadingFinance && !dashboardData ? (
-              <Skeleton className="mt-2 h-9 w-48 rounded-md" />
-            ) : (
-              <Text
-                style={TABULAR_NUMS}
-                className="mt-1 text-3xl font-extrabold tracking-tight text-foreground">
-                {formatBrlCurrency(dashboardData?.realizedBalance ?? 0, privateMode)}
-              </Text>
-            )}
-          </CardHeader>
-
-          <CardContent className="gap-3 pt-1">
-            <View className="flex-row items-center justify-between rounded-lg border border-border/80 bg-background/60 px-3 py-2">
-              <Text className="text-xs text-muted-foreground">Saldo Projetado no fim do mês</Text>
-              <Text style={TABULAR_NUMS} className="text-xs font-bold text-foreground">
-                {formatBrlCurrency(dashboardData?.projectedBalance ?? 0, privateMode)}
-              </Text>
-            </View>
-
-            {/* Quick Action Buttons */}
-            <View className="flex-row gap-2 pt-1">
-              <Button
-                variant="default"
-                size="sm"
-                className="flex-1 flex-row items-center justify-center gap-1.5"
-                onPress={() => openQuickTx('EXPENSE')}>
-                <Icon as={PlusIcon} className="size-3.5 text-primary-foreground" />
-                <Text className="text-xs font-bold">Despesa</Text>
-              </Button>
-
-              <Button
-                variant="secondary"
-                size="sm"
-                className="flex-1 flex-row items-center justify-center gap-1.5 border border-primary/30 bg-primary/15"
-                onPress={() => openQuickTx('INCOME')}>
-                <Icon as={ArrowDownLeftIcon} className="size-3.5 text-primary" />
-                <Text className="text-xs font-bold text-primary">Receita</Text>
-              </Button>
-
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex-1 flex-row items-center justify-center gap-1.5"
-                onPress={() => openQuickTx('TRANSFER')}>
-                <Icon as={ArrowRightLeftIcon} className="size-3.5 text-foreground" />
-                <Text className="text-xs font-semibold">Transf.</Text>
-              </Button>
-            </View>
-          </CardContent>
-        </Card>
-
-        {/* Income / Expense / Net Pulse Grid */}
-        <View className="flex-row gap-3">
-          <Card className="flex-1 border-border bg-card">
-            <CardContent className="gap-1 p-3.5">
-              <View className="flex-row items-center justify-between">
-                <Text className="text-[11px] font-semibold uppercase text-muted-foreground">
-                  Entradas
-                </Text>
-                <Icon as={TrendingUpIcon} className="size-4 text-primary" />
-              </View>
-              <Text style={TABULAR_NUMS} className="text-lg font-extrabold text-primary">
-                {formatBrlCurrency(dashboardData?.income ?? 0, privateMode)}
-              </Text>
-              <Text className="text-[10px] text-muted-foreground">Total de receitas no mês</Text>
-            </CardContent>
-          </Card>
-
-          <Card className="flex-1 border-border bg-card">
-            <CardContent className="gap-1 p-3.5">
-              <View className="flex-row items-center justify-between">
-                <Text className="text-[11px] font-semibold uppercase text-muted-foreground">
-                  Saídas
-                </Text>
-                <Icon as={TrendingDownIcon} className="size-4 text-destructive" />
-              </View>
-              <Text style={TABULAR_NUMS} className="text-lg font-extrabold text-destructive">
-                {formatBrlCurrency(dashboardData?.expense ?? 0, privateMode)}
-              </Text>
-              <Text style={TABULAR_NUMS} className="text-[10px] text-muted-foreground">
-                Ritmo: {formatBrlCurrency(dailyPace, privateMode)}/dia
-              </Text>
-            </CardContent>
-          </Card>
-        </View>
-
-        {/* Monthly Net Balance & AI Planner Callout */}
+        {/* Onboarding / AI Planner Banner (matching web OnboardingBanner.tsx) */}
         <Card className="border-primary/30 bg-card">
           <CardContent className="flex-row items-center justify-between gap-3 p-4">
-            <View className="flex-1 gap-1">
-              <View className="flex-row items-center gap-1.5">
-                <Icon as={BrainCircuitIcon} className="size-4 text-primary" />
-                <Text className="text-xs font-bold uppercase tracking-wider text-primary">
-                  Balanço Líquido & IA
+            <View className="flex-row items-center gap-3 flex-1">
+              <View className="h-10 w-10 items-center justify-center rounded-xl border border-primary/30 bg-primary/15">
+                <Icon as={SparklesIcon} className="size-5 text-primary" />
+              </View>
+              <View className="flex-1">
+                <Text className="text-sm font-bold text-foreground">
+                  Planejador Inteligente Rumvel
+                </Text>
+                <Text className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                  Distribua sua renda nos baldes orçamentários protegendo moradia e prioridades.
                 </Text>
               </View>
-              <Text style={TABULAR_NUMS} className="text-sm font-bold text-foreground">
-                Resultado do mês:{' '}
-                <Text className={netMonthResult >= 0 ? 'text-primary' : 'text-destructive'}>
-                  {formatBrlCurrency(netMonthResult, privateMode)}
-                </Text>
-              </Text>
-              <Text className="text-[11px] text-muted-foreground">
-                Otimize seus 9 potes orçamentários com o motor genético Rumvel.
-              </Text>
             </View>
             <Button
               size="sm"
-              variant="secondary"
-              className="border border-primary/40 bg-primary/15"
+              className="h-9 px-3"
               onPress={() => router.push('/(tabs)/planner')}>
-              <Text className="text-xs font-bold text-primary">Abrir IA</Text>
+              <Text className="text-xs font-semibold text-primary-foreground">Planejar</Text>
             </Button>
           </CardContent>
         </Card>
 
-        {/* Upcoming & Overdue Bills (1-Tap Pay) */}
+        {/* Quick Launch Action Bar */}
+        <View className="flex-row gap-2">
+          <Button
+            variant="default"
+            size="sm"
+            className="h-10 flex-1 flex-row items-center justify-center gap-1.5"
+            onPress={() => openQuickTx('EXPENSE')}>
+            <Icon as={PlusIcon} className="size-4 text-primary-foreground" />
+            <Text className="text-xs font-semibold text-primary-foreground">Novo lançamento</Text>
+          </Button>
+
+          <Button
+            variant="secondary"
+            size="sm"
+            className="h-10 flex-row items-center justify-center gap-1.5 border border-primary/30 bg-primary/15 px-3.5"
+            onPress={() => openQuickTx('INCOME')}>
+            <Icon as={ArrowUpRightIcon} className="size-3.5 text-primary" />
+            <Text className="text-xs font-semibold text-primary">Receita</Text>
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-10 flex-row items-center justify-center gap-1.5 px-3"
+            onPress={() => openQuickTx('TRANSFER')}>
+            <Icon as={ArrowRightLeftIcon} className="size-3.5 text-foreground" />
+            <Text className="text-xs font-semibold">Transf.</Text>
+          </Button>
+        </View>
+
+        {/* 4 Summary Metric Cards (matching web .summary-grid) */}
+        <View className="gap-3">
+          <View className="flex-row gap-3">
+            {/* Metric 1: Saldo realizado */}
+            <Card className="flex-1 border-border bg-card">
+              <CardContent className="justify-between gap-2 p-3.5">
+                <View className="flex-row items-center justify-between">
+                  <Text className="text-xs font-medium text-muted-foreground">
+                    Saldo realizado
+                  </Text>
+                  <Icon as={WalletIcon} className="size-4 text-muted-foreground" />
+                </View>
+                {isLoadingFinance && !dashboardData ? (
+                  <Skeleton className="h-6 w-24 rounded-md" />
+                ) : (
+                  <Text
+                    style={TABULAR_NUMS}
+                    className={`text-lg font-bold tracking-tight ${
+                      (dashboardData?.realizedBalance ?? 0) > 0
+                        ? 'text-primary'
+                        : (dashboardData?.realizedBalance ?? 0) < 0
+                          ? 'text-destructive'
+                          : 'text-foreground'
+                    }`}>
+                    {formatBrlCurrency(dashboardData?.realizedBalance ?? 0, privateMode)}
+                  </Text>
+                )}
+                <Text className="text-[11px] text-muted-foreground" numberOfLines={1}>
+                  Saldo atual das contas incluídas
+                </Text>
+              </CardContent>
+            </Card>
+
+            {/* Metric 2: Entradas do mês */}
+            <Card className="flex-1 border-border bg-card">
+              <CardContent className="justify-between gap-2 p-3.5">
+                <View className="flex-row items-center justify-between">
+                  <Text className="text-xs font-medium text-muted-foreground">
+                    Entradas do mês
+                  </Text>
+                  <Icon as={ArrowUpRightIcon} className="size-4 text-primary" />
+                </View>
+                <Text
+                  style={TABULAR_NUMS}
+                  className="text-lg font-bold tracking-tight text-primary">
+                  {formatBrlCurrency(dashboardData?.income ?? 0, privateMode)}
+                </Text>
+                <Text className="text-[11px] text-muted-foreground" numberOfLines={1}>
+                  Efetivadas e previstas no período
+                </Text>
+              </CardContent>
+            </Card>
+          </View>
+
+          <View className="flex-row gap-3">
+            {/* Metric 3: Saídas do mês */}
+            <Card className="flex-1 border-border bg-card">
+              <CardContent className="justify-between gap-2 p-3.5">
+                <View className="flex-row items-center justify-between">
+                  <Text className="text-xs font-medium text-muted-foreground">Saídas do mês</Text>
+                  <Icon as={ArrowDownLeftIcon} className="size-4 text-destructive" />
+                </View>
+                <Text
+                  style={TABULAR_NUMS}
+                  className="text-lg font-bold tracking-tight text-destructive">
+                  {formatBrlCurrency(dashboardData?.expense ?? 0, privateMode)}
+                </Text>
+                <Text className="text-[11px] text-muted-foreground" numberOfLines={1}>
+                  Efetivadas e previstas no período
+                </Text>
+              </CardContent>
+            </Card>
+
+            {/* Metric 4: Média de gasto diário */}
+            <Card className="flex-1 border-border bg-card">
+              <CardContent className="justify-between gap-2 p-3.5">
+                <View className="flex-row items-center justify-between">
+                  <Text className="text-xs font-medium text-muted-foreground">
+                    Média de gasto diário
+                  </Text>
+                  <Icon as={CalendarIcon} className="size-4 text-muted-foreground" />
+                </View>
+                <Text
+                  style={TABULAR_NUMS}
+                  className="text-lg font-bold tracking-tight text-foreground">
+                  {formatBrlCurrency(dailyAverageMeta.amount, privateMode)}
+                  <Text className="text-xs font-normal text-muted-foreground">/dia</Text>
+                </Text>
+                <Text className="text-[11px] text-muted-foreground" numberOfLines={1}>
+                  {dailyAverageMeta.note}
+                </Text>
+              </CardContent>
+            </Card>
+          </View>
+        </View>
+
+        {/* Minhas Contas (matching web FinanceDashboard overview accounts card with BankBadge) */}
         <Card className="border-border bg-card">
           <CardHeader className="flex-row items-center justify-between pb-2">
             <View>
-              <CardTitle className="text-base font-bold text-foreground">
-                Compromissos Pendentes ({dashboardData?.pendingCount ?? 0})
-              </CardTitle>
+              <CardTitle className="text-base font-bold text-foreground">Minhas contas</CardTitle>
               <CardDescription className="text-xs text-muted-foreground">
-                Baixa rápida em 1 toque com atualização imediata de saldo.
+                Seu dinheiro, bem localizado.
               </CardDescription>
             </View>
             <Button
-              variant="link"
-              size="sm"
-              className="h-auto p-0"
-              onPress={() => router.push('/(tabs)/transactions')}>
-              <Text className="text-xs font-bold text-primary">Ver todos</Text>
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              accessibilityLabel="Adicionar conta"
+              onPress={openNewAccount}>
+              <Icon as={PlusIcon} className="size-4 text-foreground" />
             </Button>
           </CardHeader>
 
-          <CardContent className="gap-2.5 pt-2">
-            {unpaidTransactions.length === 0 ? (
-              <View className="items-center justify-center rounded-lg border border-dashed border-border py-6">
-                <Icon as={CheckCircle2Icon} className="mb-1.5 size-6 text-primary" />
+          <CardContent className="gap-0 pt-1">
+            {accounts.length === 0 ? (
+              <View className="items-center py-6">
                 <Text className="text-xs font-semibold text-foreground">
-                  Tudo em dia neste período!
+                  Tudo começa com uma conta
                 </Text>
-                <Text className="text-[11px] text-muted-foreground">
-                  Nenhum lançamento pendente encontrado.
+                <Text className="mt-1 text-[11px] text-muted-foreground">
+                  Adicione sua conta bancária, poupança ou carteira.
                 </Text>
               </View>
             ) : (
-              unpaidTransactions.map((tx) => {
-                const isOverdue = tx.date.slice(0, 10) < todayStr;
-                const isIncome = tx.type.toUpperCase() === 'INCOME';
-                const cat = tx.categoryId ? categoryMap.get(tx.categoryId) : undefined;
-                const accName = accountMap.get(tx.accountId) ?? 'Conta';
-
-                return (
-                  <View
-                    key={tx.id}
-                    className="flex-row items-center justify-between rounded-lg border border-border bg-background/70 p-3">
-                    <View className="flex-1 pr-2">
-                      <View className="flex-row items-center gap-1.5">
-                        <Badge
-                          variant={isOverdue ? 'destructive' : 'secondary'}
-                          className="h-4 px-1.5 py-0">
-                          <Icon
-                            as={isOverdue ? AlertTriangleIcon : ClockIcon}
-                            className="mr-1 size-2.5 text-foreground"
-                          />
-                          <Text className="text-[9px] font-bold">
-                            {isOverdue ? 'ATRASADO' : 'PENDENTE'}
-                          </Text>
-                        </Badge>
-                        <Text style={TABULAR_NUMS} className="text-[11px] text-muted-foreground">
-                          {formatDateSafe(tx.date)}
-                        </Text>
-                      </View>
-                      <Text
-                        className="mt-1 text-xs font-semibold text-foreground"
-                        numberOfLines={1}>
-                        {tx.description}
-                      </Text>
-                      <Text className="text-[10px] text-muted-foreground">
-                        {cat?.name ?? 'Geral'} • {accName}
-                      </Text>
-                    </View>
-
-                    <View className="items-end gap-1.5">
-                      <Text
-                        style={TABULAR_NUMS}
-                        className={`text-xs font-bold ${
-                          isIncome ? 'text-primary' : 'text-foreground'
-                        }`}>
-                        {isIncome ? '+' : '-'}
-                        {formatBrlCurrency(Math.abs(tx.amount), privateMode)}
-                      </Text>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-7 border-primary/40 bg-primary/10 px-2.5"
-                        disabled={payingId === tx.id}
-                        onPress={() => void handleTogglePay(tx)}>
-                        <Icon as={CheckCircle2Icon} className="mr-1 size-3 text-primary" />
-                        <Text className="text-[11px] font-bold text-primary">
-                          {payingId === tx.id
-                            ? '...'
-                            : isIncome
-                              ? 'Receber'
-                              : 'Pagar'}
-                        </Text>
-                      </Button>
-                    </View>
+              accounts.slice(0, 4).map((acc, idx) => (
+                <View
+                  key={acc.id}
+                  className={`flex-row items-center gap-3 py-3 ${
+                    idx > 0 ? 'border-t border-border/60' : ''
+                  }`}>
+                  <BankBadge name={acc.name} type={acc.type} size="sm" />
+                  <View className="flex-1">
+                    <Text className="text-xs font-semibold text-foreground" numberOfLines={1}>
+                      {acc.name}
+                    </Text>
+                    <Text className="mt-0.5 text-[11px] text-muted-foreground">
+                      {acc.includeInTotal ? 'Incluída no saldo' : 'Fora do saldo total'}
+                    </Text>
                   </View>
-                );
-              })
+                  <Text style={TABULAR_NUMS} className="text-xs font-semibold text-foreground">
+                    {formatBrlCurrency(acc.realized ?? 0, privateMode)}
+                  </Text>
+                </View>
+              ))
             )}
           </CardContent>
+
+          <CardFooter className="pt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full flex-row items-center justify-center gap-1.5"
+              onPress={() => router.push('/(tabs)/accounts')}>
+              <Text className="text-xs font-semibold">Gerenciar contas</Text>
+              <Icon as={ArrowRightIcon} className="size-3.5 text-foreground" />
+            </Button>
+          </CardFooter>
         </Card>
 
-        {/* Category Expense Breakdown */}
+        {/* Despesas por Categoria (with official CategoryBadge) */}
         <Card className="border-border bg-card">
           <CardHeader className="pb-2">
             <CardTitle className="text-base font-bold text-foreground">
-              Distribuição por Categoria
+              Despesas por categoria
             </CardTitle>
             <CardDescription className="text-xs text-muted-foreground">
-              Concentração das despesas lançadas no mês selecionado.
+              Para onde seu dinheiro foi neste mês.
             </CardDescription>
           </CardHeader>
           <CardContent className="gap-3 pt-2">
             {categoryBreakdown.length === 0 ? (
-              <Text className="py-3 text-center text-xs text-muted-foreground">
+              <Text className="py-4 text-center text-xs text-muted-foreground">
                 Nenhuma despesa registrada neste mês.
               </Text>
             ) : (
               categoryBreakdown.map((item) => (
                 <View key={item.catId} className="gap-1.5">
                   <View className="flex-row items-center justify-between">
-                    <View className="flex-row items-center gap-2">
-                      <View
-                        style={{ backgroundColor: item.color }}
-                        className="h-2.5 w-2.5 rounded-full"
+                    <View className="flex-row items-center gap-2.5">
+                      <CategoryBadge
+                        name={item.name}
+                        parentName={item.parentName}
+                        type="EXPENSE"
+                        iconSlug={item.iconSlug}
+                        color={item.color}
+                        size="sm"
                       />
                       <Text className="text-xs font-semibold text-foreground">{item.name}</Text>
                     </View>
                     <View className="flex-row items-center gap-2">
-                      <Text style={TABULAR_NUMS} className="text-xs font-bold text-foreground">
+                      <Text style={TABULAR_NUMS} className="text-xs font-semibold text-foreground">
                         {formatBrlCurrency(item.amount, privateMode)}
                       </Text>
                       <Badge variant="secondary" className="h-4 px-1.5 py-0">
@@ -423,58 +458,65 @@ export default function DashboardScreen() {
           </CardContent>
         </Card>
 
-        {/* Budgets Traffic-Light Summary */}
+        {/* Orçamentos do mês (matching web FinanceDashboard budgetList) */}
         <Card className="border-border bg-card">
           <CardHeader className="flex-row items-center justify-between pb-2">
             <View>
               <CardTitle className="text-base font-bold text-foreground">
-                Termômetro de Orçamentos ({budgets.length})
+                Orçamentos do mês
               </CardTitle>
               <CardDescription className="text-xs text-muted-foreground">
-                Acompanhamento de limites mensais por categoria.
+                Mais intenção em cada escolha.
               </CardDescription>
             </View>
-            <Button
-              variant="link"
-              size="sm"
-              className="h-auto p-0"
-              onPress={() => router.push('/(tabs)/budgets')}>
-              <Text className="text-xs font-bold text-primary">Gerenciar</Text>
-            </Button>
+            <Icon as={PieChartIcon} className="size-4 text-muted-foreground" />
           </CardHeader>
 
           <CardContent className="gap-3 pt-2">
             {budgets.length === 0 ? (
               <View className="items-center gap-2 py-4">
-                <Text className="text-xs text-muted-foreground">
-                  Nenhum orçamento configurado para este mês.
+                <Text className="text-xs font-semibold text-foreground">
+                  Planeje seu próximo passo
+                </Text>
+                <Text className="text-center text-[11px] text-muted-foreground">
+                  Crie limites por categoria para acompanhar seus gastos.
                 </Text>
                 <Button
                   size="sm"
                   variant="outline"
                   onPress={() => router.push('/(tabs)/planner')}>
-                  <Text className="text-xs font-semibold">Gerar Orçamentos com IA</Text>
+                  <Text className="text-xs font-semibold">Gerar com Planejador IA</Text>
                 </Button>
               </View>
             ) : (
               budgets.slice(0, 4).map((b) => {
-                const catName = categoryMap.get(b.categoryId)?.name ?? 'Categoria';
+                const cat = categoryMap.get(b.categoryId);
+                const parentCat = cat?.parentId ? categoryMap.get(cat.parentId) : undefined;
+                const catName = cat?.name ?? 'Categoria';
                 const pct = Math.min(100, Math.max(0, Math.round(b.progress)));
-                const isExceeded = b.progress >= 100 || b.status === 'EXCEEDED';
-                const isWarning = !isExceeded && b.progress >= 80;
+                const isExceeded = b.progress > 100 || b.status === 'EXCEEDED';
+                const isWarning = !isExceeded && b.progress > 80;
 
                 return (
-                  <View key={b.id} className="gap-1.5 rounded-lg border border-border bg-background/50 p-3">
+                  <View key={b.id} className="gap-2 py-1.5">
                     <View className="flex-row items-center justify-between">
-                      <Text className="text-xs font-bold text-foreground">{catName}</Text>
-                      <Badge
-                        variant={isExceeded ? 'destructive' : isWarning ? 'secondary' : 'outline'}
-                        className="h-4 px-1.5 py-0">
-                        <Text style={TABULAR_NUMS} className="text-[10px] font-bold">
-                          {Math.round(b.progress)}% •{' '}
-                          {isExceeded ? 'ESTOURADO' : isWarning ? 'ATENÇÃO' : 'DENTRO DO TETO'}
-                        </Text>
-                      </Badge>
+                      <View className="flex-row items-center gap-2.5">
+                        <CategoryBadge
+                          name={catName}
+                          parentName={parentCat?.name}
+                          iconSlug={cat?.iconSlug}
+                          color={cat?.color}
+                          size="sm"
+                        />
+                        <Text className="text-sm font-medium text-foreground">{catName}</Text>
+                      </View>
+                      <Text
+                        style={TABULAR_NUMS}
+                        className={`text-xs ${
+                          isExceeded ? 'font-semibold text-destructive' : 'text-muted-foreground'
+                        }`}>
+                        {Math.round(b.progress)}% usado
+                      </Text>
                     </View>
                     <Progress
                       value={pct}
@@ -488,12 +530,202 @@ export default function DashboardScreen() {
                       className="h-2"
                     />
                     <View className="flex-row justify-between">
-                      <Text style={TABULAR_NUMS} className="text-[11px] text-muted-foreground">
-                        Gasto: {formatBrlCurrency(b.spent, privateMode)}
+                      <Text style={TABULAR_NUMS} className="text-xs text-muted-foreground">
+                        {formatBrlCurrency(b.spent, privateMode)}
                       </Text>
-                      <Text style={TABULAR_NUMS} className="text-[11px] font-semibold text-foreground">
-                        Teto: {formatBrlCurrency(b.limitAmount, privateMode)}
+                      <Text style={TABULAR_NUMS} className="text-xs text-muted-foreground">
+                        de {formatBrlCurrency(b.limitAmount, privateMode)}
                       </Text>
+                    </View>
+                  </View>
+                );
+              })
+            )}
+          </CardContent>
+
+          <CardFooter className="pt-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="flex-row items-center gap-1.5 px-0"
+              onPress={() => router.push('/(tabs)/budgets')}>
+              <Text className="text-xs font-semibold text-primary">Ver planejamento</Text>
+              <Icon as={ArrowRightIcon} className="size-3.5 text-primary" />
+            </Button>
+          </CardFooter>
+        </Card>
+
+        {/* Próximos lançamentos (matching web FinanceDashboard overview-upcoming) */}
+        <Card className="border-border bg-card">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-bold text-foreground">
+              Próximos lançamentos
+            </CardTitle>
+            <CardDescription className="text-xs text-muted-foreground">
+              Compromissos em aberto no período selecionado.
+            </CardDescription>
+          </CardHeader>
+
+          <CardContent className="gap-0 pt-1">
+            {unpaidTransactions.length === 0 ? (
+              <View className="flex-row items-center gap-2.5 py-3">
+                <Icon as={CheckCircle2Icon} className="size-5 text-primary" />
+                <Text className="text-xs font-medium text-muted-foreground">
+                  Nenhum lançamento pendente neste mês.
+                </Text>
+              </View>
+            ) : (
+              unpaidTransactions.map((tx, idx) => {
+                const isOverdue = tx.date.slice(0, 10) < todayStr;
+                const cat = tx.categoryId ? categoryMap.get(tx.categoryId) : undefined;
+                const parentCat = cat?.parentId ? categoryMap.get(cat.parentId) : undefined;
+                const accName = accountMap.get(tx.accountId) ?? 'Conta';
+
+                return (
+                  <View
+                    key={tx.id}
+                    className={`flex-row items-center gap-3 py-3 ${
+                      idx > 0 ? 'border-t border-border/60' : ''
+                    }`}>
+                    {tx.categoryId ? (
+                      <CategoryBadge
+                        name={cat?.name}
+                        parentName={parentCat?.name}
+                        type={tx.type}
+                        iconSlug={cat?.iconSlug}
+                        color={cat?.color}
+                        size="sm"
+                      />
+                    ) : (
+                      <View className="h-8 w-8 items-center justify-center rounded-lg bg-muted">
+                        <Icon as={ClockIcon} className="size-4 text-muted-foreground" />
+                      </View>
+                    )}
+
+                    <View className="flex-1">
+                      <Text className="text-xs font-medium text-foreground" numberOfLines={1}>
+                        {tx.description || 'Sem descrição'}
+                      </Text>
+                      <Text className="mt-0.5 text-[11px] text-muted-foreground" numberOfLines={1}>
+                        {isOverdue ? (
+                          <Text className="text-[11px] font-medium text-destructive">
+                            Atrasado ·{' '}
+                          </Text>
+                        ) : null}
+                        {formatDateSafe(tx.date)} · {accName}
+                      </Text>
+                    </View>
+
+                    <Text style={TABULAR_NUMS} className="text-xs font-semibold text-foreground">
+                      {formatBrlCurrency(Math.abs(tx.amount), privateMode)}
+                    </Text>
+
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 px-2.5"
+                      disabled={payingId === tx.id}
+                      onPress={() => void handleTogglePay(tx)}>
+                      <Text className="text-[11px] font-semibold">
+                        {payingId === tx.id ? '...' : 'Efetivar'}
+                      </Text>
+                    </Button>
+                  </View>
+                );
+              })
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Últimos lançamentos (matching web FinanceDashboard compact transactionsTable) */}
+        <Card className="border-border bg-card">
+          <CardHeader className="flex-row items-center justify-between pb-2">
+            <View>
+              <CardTitle className="text-base font-bold text-foreground">
+                Últimos lançamentos
+              </CardTitle>
+              <CardDescription className="text-xs text-muted-foreground">
+                Os movimentos mais recentes do mês.
+              </CardDescription>
+            </View>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="flex-row items-center gap-1 px-2"
+              onPress={() => router.push('/(tabs)/transactions')}>
+              <Text className="text-xs font-semibold text-primary">Ver todos</Text>
+              <Icon as={ArrowRightIcon} className="size-3.5 text-primary" />
+            </Button>
+          </CardHeader>
+
+          <CardContent className="gap-0 pt-1">
+            {recentTransactions.length === 0 ? (
+              <Text className="py-4 text-center text-xs text-muted-foreground">
+                Nenhum lançamento registrado neste mês.
+              </Text>
+            ) : (
+              recentTransactions.map((tx, idx) => {
+                const typeUpper = tx.type.toUpperCase();
+                const isIncome = typeUpper === 'INCOME';
+                const isExpense = typeUpper === 'EXPENSE';
+                const isOverdue = !tx.paid && tx.date.slice(0, 10) < todayStr;
+                const cat = tx.categoryId ? categoryMap.get(tx.categoryId) : undefined;
+                const parentCat = cat?.parentId ? categoryMap.get(cat.parentId) : undefined;
+                const accName = accountMap.get(tx.accountId) ?? 'Conta';
+
+                return (
+                  <View
+                    key={tx.id}
+                    className={`flex-row items-center justify-between gap-3 py-3 ${
+                      idx > 0 ? 'border-t border-border/60' : ''
+                    }`}>
+                    <View className="flex-row items-center gap-3 flex-1">
+                      <CategoryBadge
+                        name={cat?.name}
+                        parentName={parentCat?.name}
+                        type={tx.type}
+                        iconSlug={cat?.iconSlug}
+                        color={cat?.color}
+                        size="md"
+                      />
+                      <View className="flex-1">
+                        <Text className="text-xs font-semibold text-foreground" numberOfLines={1}>
+                          {tx.description || 'Sem descrição'}
+                        </Text>
+                        <Text className="mt-0.5 text-[11px] text-muted-foreground">
+                          {accName} • {formatDateSafe(tx.date)}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <View className="items-end">
+                      <Text
+                        style={TABULAR_NUMS}
+                        className={`text-xs font-semibold ${
+                          isIncome
+                            ? 'text-primary'
+                            : isExpense
+                              ? 'text-destructive'
+                              : 'text-foreground'
+                        }`}>
+                        {isExpense ? '− ' : isIncome ? '+ ' : ''}
+                        {formatBrlCurrency(Math.abs(tx.amount), privateMode)}
+                      </Text>
+
+                      <View className="mt-1 flex-row items-center gap-1 rounded-full border border-border/80 bg-background px-2 py-0.5">
+                        <View
+                          className={`h-1.5 w-1.5 rounded-full ${
+                            tx.paid
+                              ? 'bg-primary'
+                              : isOverdue
+                                ? 'bg-destructive'
+                                : 'bg-amber-500'
+                          }`}
+                        />
+                        <Text className="text-[10px] font-medium text-muted-foreground">
+                          {tx.paid ? 'Pago' : isOverdue ? 'Atrasado' : 'Pendente'}
+                        </Text>
+                      </View>
                     </View>
                   </View>
                 );

@@ -3,7 +3,6 @@ import { ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   AlertTriangleIcon,
-  BrainCircuitIcon,
   CheckCircle2Icon,
   LockIcon,
   ShieldAlertIcon,
@@ -12,6 +11,7 @@ import {
   Wand2Icon,
 } from 'lucide-react-native';
 import { AppHeader } from '@/components/finance/AppHeader';
+import { CategoryBadge } from '@/components/finance/CategoryBadge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -61,7 +61,7 @@ const EMPLOYMENT_OPTIONS: { value: EmploymentType; label: string }[] = [
 const HOUSING_OPTIONS: { value: HousingType; label: string }[] = [
   { value: 'RENT', label: 'Aluguel' },
   { value: 'MORTGAGE', label: 'Financiamento Imobiliário' },
-  { value: 'OWNED', label: 'Imóvel Próprio Quit.' },
+  { value: 'OWNED', label: 'Imóvel Próprio Quitado' },
   { value: 'FAMILY_SHARED', label: 'Mora com a Família' },
 ];
 
@@ -173,7 +173,6 @@ export default function PlannerScreen() {
     }
   };
 
-  // Generate an initial recommendation on first mount so Result tab is immediately populated
   useEffect(() => {
     void runOptimization(undefined, false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -217,8 +216,8 @@ export default function PlannerScreen() {
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top']}>
       <AppHeader
-        title="Planejador Financeiro IA"
-        subtitle="Algoritmo Genético & Alocação Hare-Niemeyer em 9 Potes"
+        title="Planejador IA"
+        subtitle="Alocação orçamentária personalizada para sua renda, moradia e objetivos."
         showMarketStrip={false}
       />
 
@@ -227,12 +226,12 @@ export default function PlannerScreen() {
         contentContainerClassName="gap-4 p-4 pb-12"
         showsVerticalScrollIndicator={false}>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="w-full flex-row bg-card border border-border">
+          <TabsList className="w-full flex-row border border-border bg-card">
             <TabsTrigger value="form" className="flex-1">
-              <Text className="text-xs font-bold">1. Diagnóstico & Perfil</Text>
+              <Text className="text-xs font-semibold">1. Seu Perfil Financeiro</Text>
             </TabsTrigger>
             <TabsTrigger value="result" className="flex-1">
-              <Text className="text-xs font-bold">2. Plano 9 Potes (GA)</Text>
+              <Text className="text-xs font-semibold">2. Recomendação IA</Text>
             </TabsTrigger>
           </TabsList>
 
@@ -326,10 +325,11 @@ export default function PlannerScreen() {
             <Card className="border-border bg-card">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base font-bold text-foreground">
-                  Obrigações Protegidas & Custos Essenciais
+                  O Essencial Protegido
                 </CardTitle>
                 <CardDescription className="text-xs text-muted-foreground">
-                  Valores blindados que o motor genético respeita como piso inegociável.
+                  Moradia, alimentação, saúde e pensão alimentícia são tratados como piso
+                  inegociável de sobrevivência.
                 </CardDescription>
               </CardHeader>
 
@@ -424,7 +424,7 @@ export default function PlannerScreen() {
             <Card className="border-border bg-card">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base font-bold text-foreground">
-                  Dívidas, Investimentos & Modo de Operação
+                  Dívidas, Investimentos & Modo de Planejamento
                 </CardTitle>
                 <CardDescription className="text-xs text-muted-foreground">
                   Configure seu nível de endividamento e ambição patrimonial.
@@ -446,7 +446,7 @@ export default function PlannerScreen() {
                         key={d.key}
                         size="sm"
                         variant={debtLevel === d.key ? 'default' : 'outline'}
-                        className="flex-1 h-8 px-2"
+                        className="h-8 flex-1 px-2"
                         onPress={() => setDebtLevel(d.key)}>
                         <Text className="text-[11px] font-semibold">{d.label}</Text>
                       </Button>
@@ -480,7 +480,7 @@ export default function PlannerScreen() {
                         key={inv.key}
                         size="sm"
                         variant={investmentAmbition === inv.key ? 'default' : 'outline'}
-                        className="flex-1 h-8"
+                        className="h-8 flex-1"
                         onPress={() => setInvestmentAmbition(inv.key)}>
                         <Text className="text-xs">{inv.label}</Text>
                       </Button>
@@ -503,20 +503,18 @@ export default function PlannerScreen() {
                       variant={planningMode === 'DEBT_PAYOFF' ? 'destructive' : 'outline'}
                       className="flex-1"
                       onPress={() => setPlanningMode('DEBT_PAYOFF')}>
-                      <Text className="text-xs font-bold">Modo Resgate (Quitar Dívidas)</Text>
+                      <Text className="text-xs font-bold">Quitação de Dívidas</Text>
                     </Button>
                   </View>
                 </View>
 
                 <Button
-                  className="mt-2 w-full flex-row items-center justify-center gap-2"
+                  className="mt-2 h-11 w-full flex-row items-center justify-center gap-2"
                   disabled={calculating}
                   onPress={() => void runOptimization(undefined, true)}>
-                  <Icon as={BrainCircuitIcon} className="size-4 text-primary-foreground" />
-                  <Text className="font-bold">
-                    {calculating
-                      ? 'Executando Algoritmo Genético...'
-                      : 'Gerar Recomendação Inteligente (9 Potes)'}
+                  <Icon as={SparklesIcon} className="size-4 text-primary-foreground" />
+                  <Text className="font-semibold text-primary-foreground">
+                    {calculating ? 'Calculando planejamento...' : 'Gerar Recomendação IA'}
                   </Text>
                 </Button>
               </CardContent>
@@ -534,7 +532,7 @@ export default function PlannerScreen() {
                       <Badge variant="secondary" className="border-primary/40 bg-primary/15">
                         <Icon as={SparklesIcon} className="mr-1 size-3 text-primary" />
                         <Text className="text-[10px] font-bold text-primary">
-                          MOTOR GENÉTICO & HARE-NIEMEYER
+                          PLANEJADOR INTELIGENTE RUMVEL
                         </Text>
                       </Badge>
 
@@ -550,7 +548,7 @@ export default function PlannerScreen() {
                       </Badge>
                     </View>
 
-                    <CardTitle className="mt-2 text-lg font-extrabold text-foreground">
+                    <CardTitle className="mt-2 text-lg font-bold text-foreground">
                       {recommendation.ruleName}
                     </CardTitle>
                     <CardDescription className="text-xs text-muted-foreground">
@@ -564,7 +562,7 @@ export default function PlannerScreen() {
                         <Text className="text-[10px] uppercase text-muted-foreground">
                           Renda Confiável
                         </Text>
-                        <Text style={TABULAR_NUMS} className="text-sm font-extrabold text-primary">
+                        <Text style={TABULAR_NUMS} className="text-sm font-bold text-primary">
                           {formatBrlCurrency(
                             recommendation.summary.reliableIncome,
                             privateMode
@@ -574,11 +572,11 @@ export default function PlannerScreen() {
 
                       <View className="min-w-[46%] flex-1 rounded-lg border border-border bg-background/70 p-2.5">
                         <Text className="text-[10px] uppercase text-muted-foreground">
-                          Piso Blindado
+                          Obrigações Protegidas
                         </Text>
                         <Text
                           style={TABULAR_NUMS}
-                          className="text-sm font-extrabold text-foreground">
+                          className="text-sm font-bold text-foreground">
                           {formatBrlCurrency(
                             recommendation.summary.protectedObligations,
                             privateMode
@@ -590,7 +588,7 @@ export default function PlannerScreen() {
                         <Text className="text-[10px] uppercase text-muted-foreground">
                           Reserva Recomendada ({recommendation.summary.emergencyTargetMonths}m)
                         </Text>
-                        <Text style={TABULAR_NUMS} className="text-sm font-extrabold text-sky-400">
+                        <Text style={TABULAR_NUMS} className="text-sm font-bold text-sky-400">
                           {formatBrlCurrency(
                             recommendation.summary.emergencyTargetAmount,
                             privateMode
@@ -600,11 +598,11 @@ export default function PlannerScreen() {
 
                       <View className="min-w-[46%] flex-1 rounded-lg border border-border bg-background/70 p-2.5">
                         <Text className="text-[10px] uppercase text-muted-foreground">
-                          Margem Ajustável
+                          Saldo Flexível
                         </Text>
                         <Text
                           style={TABULAR_NUMS}
-                          className="text-sm font-extrabold text-foreground">
+                          className="text-sm font-bold text-foreground">
                           {formatBrlCurrency(recommendation.summary.flexibleBalance, privateMode)}
                         </Text>
                       </View>
@@ -644,7 +642,7 @@ export default function PlannerScreen() {
                               void runOptimization('DEBT_PAYOFF', false);
                             }}>
                             <Text className="text-xs font-bold">
-                              Ativar Modo Resgate de Dívidas
+                              Ativar Modo Quitação de Dívidas
                             </Text>
                           </Button>
                         ) : null}
@@ -661,28 +659,28 @@ export default function PlannerScreen() {
                     ) : null}
 
                     <Button
-                      className="w-full flex-row items-center justify-center gap-2"
+                      className="h-11 w-full flex-row items-center justify-center gap-2"
                       disabled={applying}
                       onPress={() => void handleApplyToBudgets()}>
                       <Icon as={Wand2Icon} className="size-4 text-primary-foreground" />
-                      <Text className="font-bold">
+                      <Text className="font-semibold text-primary-foreground">
                         {applying
-                          ? 'Provisionando Orçamentos...'
-                          : `Aplicar 9 Potes aos Orçamentos (${month})`}
+                          ? 'Aplicando aos orçamentos...'
+                          : `Aplicar aos Orçamentos (${month})`}
                       </Text>
                     </Button>
                   </CardContent>
                 </Card>
 
-                {/* 9 Allocation Buckets List */}
+                {/* Allocation Buckets List with official CategoryBadge */}
                 <Card className="border-border bg-card">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-base font-bold text-foreground">
-                      Distribuição nos 9 Potes Orçamentários
+                      Distribuição nos Baldes Orçamentários
                     </CardTitle>
                     <CardDescription className="text-xs text-muted-foreground">
-                      Potes blindados protegem suas obrigações fixas; potes ajustáveis absorvem sua
-                      estratégia.
+                      Baldes protegidos blindam suas obrigações fixas; baldes ajustáveis absorvem
+                      sua estratégia.
                     </CardDescription>
                   </CardHeader>
 
@@ -694,34 +692,42 @@ export default function PlannerScreen() {
                         return (
                           <View
                             key={bucket.key}
-                            className="gap-1.5 rounded-lg border border-border bg-background/60 p-3">
+                            className="gap-2 rounded-lg border border-border bg-background/60 p-3">
                             <View className="flex-row items-center justify-between gap-2">
-                              <View className="flex-row items-center gap-2 flex-1">
-                                <View
-                                  style={{ backgroundColor: bucket.color }}
-                                  className="h-3 w-3 rounded-full"
+                              <View className="flex-row items-center gap-2.5 flex-1">
+                                <CategoryBadge
+                                  name={bucket.name}
+                                  color={bucket.color}
+                                  size="sm"
                                 />
-                                <Text
-                                  className="text-xs font-bold text-foreground"
-                                  numberOfLines={1}>
-                                  {bucket.name}
-                                </Text>
-                                {isProtected ? (
-                                  <Badge
-                                    variant="secondary"
-                                    className="h-4 border-amber-500/40 bg-amber-500/15 px-1.5 py-0">
-                                    <Icon as={LockIcon} className="mr-1 size-2.5 text-amber-400" />
-                                    <Text className="text-[9px] font-bold text-amber-400">
-                                      BLINDADO
+                                <View className="flex-1">
+                                  <View className="flex-row items-center gap-1.5 flex-wrap">
+                                    <Text
+                                      className="text-xs font-bold text-foreground"
+                                      numberOfLines={1}>
+                                      {bucket.name}
                                     </Text>
-                                  </Badge>
-                                ) : null}
+                                    {isProtected ? (
+                                      <Badge
+                                        variant="secondary"
+                                        className="h-4 border-amber-500/40 bg-amber-500/15 px-1.5 py-0">
+                                        <Icon
+                                          as={LockIcon}
+                                          className="mr-1 size-2.5 text-amber-400"
+                                        />
+                                        <Text className="text-[9px] font-bold text-amber-400">
+                                          Protegido
+                                        </Text>
+                                      </Badge>
+                                    ) : null}
+                                  </View>
+                                </View>
                               </View>
 
                               <View className="flex-row items-center gap-2">
                                 <Text
                                   style={TABULAR_NUMS}
-                                  className="text-xs font-extrabold text-foreground">
+                                  className="text-xs font-bold text-foreground">
                                   {formatBrlCurrency(bucket.amount, privateMode)}
                                 </Text>
                                 <Badge variant="outline" className="h-5 px-1.5 py-0">
@@ -747,7 +753,7 @@ export default function PlannerScreen() {
                 <Card className="border-border bg-card">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-base font-bold text-foreground">
-                      Diretrizes Estratégicas do Motor
+                      Recomendações do seu plano
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="gap-2 pt-1">
