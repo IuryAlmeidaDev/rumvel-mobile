@@ -437,11 +437,13 @@ export function CategoryIconPicker({
         </View>
       </View>
 
-      {/* Icon Grid */}
+      {/* Icon Grid (all 40 selectable icons) */}
       <View className="gap-1.5">
-        <Text className="text-xs font-medium text-muted-foreground">Ícone da categoria</Text>
+        <Text className="text-xs font-medium text-muted-foreground">
+          Ícone da categoria ({SELECTABLE_ICONS.length} opções)
+        </Text>
         <View className="flex-row flex-wrap gap-1.5 rounded-xl border border-border bg-background/60 p-2">
-          {SELECTABLE_ICONS.slice(0, 18).map((item) => {
+          {SELECTABLE_ICONS.map((item) => {
             const IconComp = item.icon;
             const isSelected = selectedSlug === item.slug;
             return (

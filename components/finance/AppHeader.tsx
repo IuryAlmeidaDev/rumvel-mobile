@@ -1,5 +1,6 @@
 import React from 'react';
-import { ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useColorScheme } from 'nativewind';
 import {
   ArrowDownRightIcon,
@@ -46,6 +47,7 @@ export function AppHeader({
   showMonthSelector = true,
   showMarketStrip = true,
 }: AppHeaderProps) {
+  const router = useRouter();
   const {
     user,
     isDemo,
@@ -66,56 +68,41 @@ export function AppHeader({
 
   return (
     <View className="border-b border-border bg-card px-4 pb-3 pt-2.5">
-      {/* Top Row: Official Rumvel Emblem + User + Action Controls */}
+      {/* Row 1: Official Rumvel Emblem + DEMO Badge on Left; Month Selector + Utility Actions + Avatar on Right */}
       <View className="flex-row items-center justify-between gap-2">
-        <View className="flex-row items-center gap-2.5 flex-1">
+        <View className="flex-row items-center gap-2">
           <RumvelLogo size="xs" />
-
-          <View className="h-5 w-[1px] bg-border" />
-
-          <View className="flex-row items-center gap-2 flex-1">
-            <Avatar alt={userName} className="h-7 w-7 border border-border bg-secondary">
-              <AvatarFallback className="bg-secondary">
-                <Text className="text-[10px] font-bold text-secondary-foreground">{initials}</Text>
-              </AvatarFallback>
-            </Avatar>
-            <View className="flex-1">
-              <View className="flex-row items-center gap-1.5">
-                <Text className="text-xs font-semibold text-foreground" numberOfLines={1}>
-                  {userName || 'Meu espaço'}
-                </Text>
-                {isDemo ? (
-                  <Badge
-                    variant="secondary"
-                    className="h-4 border-primary/30 bg-primary/15 px-1.5 py-0">
-                    <Text className="text-[8px] font-bold text-primary">DEMO</Text>
-                  </Badge>
-                ) : null}
-              </View>
-            </View>
-          </View>
+          {isDemo ? (
+            <Badge
+              variant="secondary"
+              className="h-5 border-primary/30 bg-primary/15 px-2 py-0">
+              <Text className="text-[10px] font-bold text-primary">SANDBOX</Text>
+            </Badge>
+          ) : null}
         </View>
 
-        <View className="flex-row items-center gap-0.5">
+        <View className="flex-row items-center gap-1">
           {showMonthSelector ? (
-            <View className="mr-1 flex-row items-center rounded-lg border border-border bg-background px-1 py-0.5">
+            <View className="mr-0.5 flex-row items-center rounded-lg border border-border bg-background px-1 py-0.5">
               <Button
                 variant="ghost"
                 size="icon"
                 className="h-7 w-7"
+                hitSlop={6}
                 onPress={prevMonth}
                 accessibilityLabel="Mês anterior">
                 <Icon as={ChevronLeftIcon} className="size-3.5 text-muted-foreground" />
               </Button>
               <Text
                 style={TABULAR_NUMS}
-                className="min-w-[64px] text-center text-[11px] font-semibold text-foreground">
+                className="min-w-[66px] text-center text-[11px] font-semibold text-foreground">
                 {formatMonthDisplay(month)}
               </Text>
               <Button
                 variant="ghost"
                 size="icon"
                 className="h-7 w-7"
+                hitSlop={6}
                 onPress={nextMonth}
                 accessibilityLabel="Próximo mês">
                 <Icon as={ChevronRightIcon} className="size-3.5 text-muted-foreground" />
@@ -127,6 +114,7 @@ export function AppHeader({
             variant="ghost"
             size="icon"
             className="h-8 w-8 rounded-full"
+            hitSlop={6}
             onPress={togglePrivateMode}
             accessibilityLabel={privateMode ? 'Mostrar valores' : 'Ocultar valores'}>
             <Icon
@@ -139,6 +127,7 @@ export function AppHeader({
             variant="ghost"
             size="icon"
             className="h-8 w-8 rounded-full"
+            hitSlop={6}
             onPress={() => void refreshFinance()}
             disabled={isLoadingFinance}
             accessibilityLabel="Atualizar dados">
@@ -152,6 +141,7 @@ export function AppHeader({
             variant="ghost"
             size="icon"
             className="h-8 w-8 rounded-full"
+            hitSlop={6}
             onPress={toggleColorScheme}
             accessibilityLabel={isDark ? 'Ativar tema claro' : 'Ativar tema escuro'}>
             <Icon
@@ -159,26 +149,48 @@ export function AppHeader({
               className="size-4 text-muted-foreground"
             />
           </Button>
+
+          <Pressable
+            onPress={() => router.push('/(tabs)/accounts')}
+            hitSlop={6}
+            accessibilityRole="button"
+            accessibilityLabel={`Perfil de ${userName || 'usuário'}`}
+            className="ml-0.5 active:opacity-80">
+            <Avatar alt={userName} className="h-7 w-7 border border-primary/40 bg-secondary">
+              <AvatarFallback className="bg-secondary">
+                <Text className="text-[10px] font-bold text-secondary-foreground">{initials}</Text>
+              </AvatarFallback>
+            </Avatar>
+          </Pressable>
         </View>
       </View>
 
-      {/* Page Intro Title & Subtitle (matching web .page-intro) */}
+      {/* Row 2: Page Intro Title, Subtitle & Full User Name Pill */}
       {title ? (
-        <View className="mt-2.5">
-          <Text className="text-lg font-bold tracking-tight text-foreground">{title}</Text>
-          {subtitle ? (
-            <Text className="mt-0.5 text-xs text-muted-foreground">{subtitle}</Text>
+        <View className="mt-2.5 flex-row items-start justify-between gap-2">
+          <View className="flex-1">
+            <Text className="text-base font-bold tracking-tight text-foreground">{title}</Text>
+            {subtitle ? (
+              <Text className="mt-0.5 text-xs text-muted-foreground">{subtitle}</Text>
+            ) : null}
+          </View>
+          {userName ? (
+            <Pressable
+              onPress={() => router.push('/(tabs)/accounts')}
+              className="rounded-full border border-border bg-background/70 px-2.5 py-1 active:opacity-80">
+              <Text className="text-[11px] font-medium text-muted-foreground">{userName}</Text>
+            </Pressable>
           ) : null}
         </View>
       ) : null}
 
-      {/* Market Indicators Strip (matching web MarketHeaderBar.tsx) */}
+      {/* Row 3: Edge-to-Edge Market Indicators Strip */}
       {showMarketStrip && marketIndicators.length > 0 ? (
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          className="mt-2.5"
-          contentContainerClassName="items-center gap-2 pr-2">
+          className="-mx-4 mt-2.5"
+          contentContainerClassName="items-center gap-2 px-4">
           {marketIndicators.map((indicator) => {
             const pct = indicator.pctChange;
             const isUp = typeof pct === 'number' && pct > 0;
@@ -199,7 +211,7 @@ export function AppHeader({
                 <Text
                   style={TABULAR_NUMS}
                   className={`text-[11px] font-semibold ${
-                    isIpca ? 'text-primary' : 'text-foreground'
+                    isIpca ? 'text-amber-600 dark:text-amber-400' : 'text-foreground'
                   }`}>
                   {displayValue}
                 </Text>

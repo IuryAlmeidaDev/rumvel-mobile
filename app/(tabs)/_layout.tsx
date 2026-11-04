@@ -2,6 +2,7 @@ import React from 'react';
 import { View } from 'react-native';
 import { Tabs } from 'expo-router';
 import { useColorScheme } from 'nativewind';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   ArrowRightLeftIcon,
   LayoutDashboardIcon,
@@ -12,10 +13,12 @@ import {
 
 export default function TabsLayout() {
   const { colorScheme } = useColorScheme();
+  const insets = useSafeAreaInsets();
   const isDark = colorScheme !== 'light';
 
   const activeColor = isDark ? '#00d494' : '#047857';
   const inactiveColor = isDark ? '#7c8ea1' : '#64748b';
+  const bottomInset = Math.max(insets.bottom, 10);
 
   return (
     <Tabs
@@ -27,9 +30,9 @@ export default function TabsLayout() {
           backgroundColor: isDark ? '#0e141d' : '#ffffff',
           borderTopColor: isDark ? '#1a2332' : '#e2e8f0',
           borderTopWidth: 1,
-          height: 64,
+          height: 56 + bottomInset,
           paddingTop: 6,
-          paddingBottom: 8,
+          paddingBottom: bottomInset,
         },
         tabBarLabelStyle: {
           fontSize: 11,

@@ -45,13 +45,15 @@ import {
   TABULAR_NUMS,
 } from '@/lib/formatters';
 
-type TxFilter = 'ALL' | 'EXPENSE' | 'INCOME' | 'TRANSFER' | 'PENDING' | 'OVERDUE' | 'PAID';
+type TxTypeFilter = 'ALL' | 'EXPENSE' | 'INCOME' | 'TRANSFER';
+type TxStatusFilter = 'ALL' | 'PENDING' | 'OVERDUE' | 'PAID';
 
 export default function TransactionsScreen() {
   const { month, privateMode, dashboardData, refreshFinance, optimisticTogglePay } = useApp();
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeFilter, setActiveFilter] = useState<TxFilter>('ALL');
+  const [typeFilter, setTypeFilter] = useState<TxTypeFilter>('ALL');
+  const [statusFilter, setStatusFilter] = useState<TxStatusFilter>('ALL');
   const [selectedAccountId, setSelectedAccountId] = useState<string>('ALL');
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -97,16 +99,18 @@ export default function TransactionsScreen() {
         const isOverdue = !tx.paid && tx.date.slice(0, 10) < todayStr;
         const isPending = !tx.paid && tx.date.slice(0, 10) >= todayStr;
 
-        if (activeFilter === 'EXPENSE' && typeUpper !== 'EXPENSE') return false;
-        if (activeFilter === 'INCOME' && typeUpper !== 'INCOME') return false;
-        if (activeFilter === 'TRANSFER' && typeUpper !== 'TRANSFER') return false;
-        if (activeFilter === 'PENDING' && !isPending) return false;
-        if (activeFilter === 'OVERDUE' && !isOverdue) return false;
-        if (activeFilter === 'PAID' && !tx.paid) return false;
+        if (typeFilter === 'EXPENSE' && typeUpper !== 'EXPENSE') return false;
+        if (typeFilter === 'INCOME' && typeUpper !== 'INCOME') return false;
+        if (typeFilter === 'TRANSFER' && typeUpper !== 'TRANSFER') return false;
+
+        if (statusFilter === 'PENDING' && !isPending) return false;
+        if (statusFilter === 'OVERDUE' && !isOverdue) return false;
+        if (statusFilter === 'PAID' && !tx.paid) return false;
 
         if (searchQuery.trim()) {
           const q = searchQuery.toLowerCase();
-          const catName = (tx.categoryId ? categoryMap.get(tx.categoryId)?.name : '')?.toLowerCase() ?? '';
+          const catName =
+            (tx.categoryId ? categoryMap.get(tx.categoryId)?.name : '')?.toLowerCase() ?? '';
           const accName = (accountMap.get(tx.accountId)?.name ?? '').toLowerCase();
           return (
             tx.description.toLowerCase().includes(q) ||
@@ -117,14 +121,27 @@ export default function TransactionsScreen() {
         return true;
       })
       .sort((a, b) => b.date.localeCompare(a.date));
-  }, [transactions, selectedAccountId, activeFilter, searchQuery, todayStr, categoryMap, accountMap]);
+  }, [
+    transactions,
+    selectedAccountId,
+    typeFilter,
+    statusFilter,
+    searchQuery,
+    todayStr,
+    categoryMap,
+    accountMap,
+  ]);
 
   const hasActiveFilters =
-    activeFilter !== 'ALL' || selectedAccountId !== 'ALL' || searchQuery.trim() !== '';
+    typeFilter !== 'ALL' ||
+    statusFilter !== 'ALL' ||
+    selectedAccountId !== 'ALL' ||
+    searchQuery.trim() !== '';
 
   const clearFilters = () => {
     setSearchQuery('');
-    setActiveFilter('ALL');
+    setTypeFilter('ALL');
+    setStatusFilter('ALL');
     setSelectedAccountId('ALL');
   };
 
@@ -178,30 +195,54 @@ export default function TransactionsScreen() {
           </Button>
         </View>
 
-        {/* Type / Status Filter Pills */}
+        {/* Independent Type & Status Filter Pills */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          className="mt-2.5"
-          contentContainerClassName="gap-1.5">
+          className="-mx-4 mt-2.5"
+          contentContainerClassName="items-center gap-1.5 px-4">
           {(
             [
-              { key: 'ALL', label: 'Todos os tipos' },
+              { key: 'ALL', label: 'Todos' },
               { key: 'INCOME', label: 'Receitas' },
               { key: 'EXPENSE', label: 'Despesas' },
-              { key: 'TRANSFER', label: 'Transferências' },
-              { key: 'PENDING', label: 'Pendentes' },
-              { key: 'OVERDUE', label: 'Atrasados' },
-              { key: 'PAID', label: 'Pagos' },
+              { key: 'TRANSFER', label: 'Transf.' },
             ] as const
           ).map((f) => (
             <Button
               key={f.key}
               size="sm"
-              variant={activeFilter === f.key ? 'default' : 'outline'}
+              variant={typeFilter === f.key ? 'default' : 'outline'}
               className="h-7 px-2.5"
-              onPress={() => setActiveFilter(f.key)}>
+              onPress={() => setTypeFilter(f.key)}>
               <Text className="text-[11px] font-semibold">{f.label}</Text>
+            </Button>
+          ))}
+
+          <View className="mx-1 h-4 w-[1px] bg-border" />
+
+          {(
+            [
+              { key: 'ALL', label: 'Qualquer status' },
+              { key: 'OVERDUE', label: 'Atrasados' },
+              { key: 'PENDING', label: 'Pendentes' },
+              { key: 'PAID', label: 'Pagos' },
+            ] as const
+          ).map((s) => (
+            <Button
+              key={s.key}
+              size="sm"
+              variant={statusFilter === s.key ? 'secondary' : 'outline'}
+              className={`h-7 px-2.5 ${
+                statusFilter === s.key ? 'border border-primary/40 bg-primary/15' : ''
+              }`}
+              onPress={() => setStatusFilter(s.key)}>
+              <Text
+                className={`text-[11px] font-semibold ${
+                  statusFilter === s.key ? 'text-primary' : ''
+                }`}>
+                {s.label}
+              </Text>
             </Button>
           ))}
         </ScrollView>
@@ -211,8 +252,8 @@ export default function TransactionsScreen() {
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            className="mt-2"
-            contentContainerClassName="items-center gap-1.5">
+            className="-mx-4 mt-2"
+            contentContainerClassName="items-center gap-1.5 px-4">
             <Button
               size="sm"
               variant={selectedAccountId === 'ALL' ? 'secondary' : 'ghost'}
@@ -310,7 +351,10 @@ export default function TransactionsScreen() {
                     <View className="flex-row items-center gap-3 flex-1">
                       {isTransfer ? (
                         <View className="h-9 w-9 items-center justify-center rounded-xl border border-sky-500/30 bg-sky-500/15">
-                          <Icon as={ArrowRightLeftIcon} className="size-4 text-sky-400" />
+                          <Icon
+                            as={ArrowRightLeftIcon}
+                            className="size-4 text-sky-600 dark:text-sky-400"
+                          />
                         </View>
                       ) : (
                         <CategoryBadge
@@ -346,7 +390,7 @@ export default function TransactionsScreen() {
                           <View className="mt-1 flex-row items-center gap-1.5">
                             {tx.installmentNumber && tx.totalInstallments ? (
                               <Badge variant="secondary" className="h-4 px-1.5 py-0">
-                                <Text style={TABULAR_NUMS} className="text-[9px] font-bold">
+                                <Text style={TABULAR_NUMS} className="text-[10px] font-bold">
                                   {tx.installmentNumber}/{tx.totalInstallments}
                                 </Text>
                               </Badge>
@@ -354,7 +398,7 @@ export default function TransactionsScreen() {
                             {tx.isRecurring || tx.recurring || tx.recurringId ? (
                               <Badge variant="secondary" className="h-4 px-1.5 py-0">
                                 <Icon as={RepeatIcon} className="mr-1 size-2.5 text-primary" />
-                                <Text className="text-[9px] font-bold text-primary">
+                                <Text className="text-[10px] font-bold text-primary">
                                   Recorrente
                                 </Text>
                               </Badge>
@@ -379,7 +423,7 @@ export default function TransactionsScreen() {
                         {formatBrlCurrency(Math.abs(tx.amount), privateMode)}
                       </Text>
 
-                      <View className="mt-1.5 flex-row items-center gap-1">
+                      <View className="mt-1.5 flex-row items-center gap-1.5">
                         {/* Status Pill matching web getTransactionStatusConfig */}
                         <View
                           className={`flex-row items-center gap-1 rounded-full border px-2 py-0.5 ${
@@ -399,7 +443,7 @@ export default function TransactionsScreen() {
                             }`}
                           />
                           <Text
-                            className={`text-[10px] font-medium ${
+                            className={`text-[10px] font-bold uppercase ${
                               tx.paid
                                 ? 'text-primary'
                                 : isOverdue
@@ -414,7 +458,8 @@ export default function TransactionsScreen() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-6 px-2"
+                            className="h-8 px-2"
+                            hitSlop={6}
                             onPress={() => void optimisticTogglePay(tx, !tx.paid)}>
                             <Text className="text-[10px] font-semibold text-foreground">
                               {tx.paid ? 'Desfazer' : 'Baixar'}
@@ -425,19 +470,21 @@ export default function TransactionsScreen() {
                         <Button
                           size="icon"
                           variant="ghost"
-                          className="h-6 w-6"
+                          className="h-8 w-8"
+                          hitSlop={6}
                           onPress={() => handleOpenEdit(tx)}
                           accessibilityLabel={`Editar lançamento ${tx.description}`}>
-                          <Icon as={PencilIcon} className="size-3 text-muted-foreground" />
+                          <Icon as={PencilIcon} className="size-3.5 text-muted-foreground" />
                         </Button>
 
                         <Button
                           size="icon"
                           variant="ghost"
-                          className="h-6 w-6"
+                          className="h-8 w-8"
+                          hitSlop={6}
                           onPress={() => setDeleteTarget(tx)}
                           accessibilityLabel={`Excluir lançamento ${tx.description}`}>
-                          <Icon as={Trash2Icon} className="size-3 text-destructive" />
+                          <Icon as={Trash2Icon} className="size-3.5 text-destructive" />
                         </Button>
                       </View>
                     </View>

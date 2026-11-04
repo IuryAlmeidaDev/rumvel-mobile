@@ -31,11 +31,46 @@ import {
   type FinanceTransaction,
 } from '@/lib/financeApi';
 import {
+  formatBrlCurrency,
   getTodayString,
   parseBrlAmount,
   sanitizeAmountInput,
   TABULAR_NUMS,
 } from '@/lib/formatters';
+
+function isoToBrlDate(iso: string): string {
+  const clean = iso.slice(0, 10);
+  const parts = clean.split('-');
+  if (parts.length === 3) {
+    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  }
+  return clean;
+}
+
+function parseDateToIso(raw: string): string {
+  const trimmed = raw.trim();
+  const brlMatch = trimmed.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  if (brlMatch) {
+    const dd = brlMatch[1].padStart(2, '0');
+    const mm = brlMatch[2].padStart(2, '0');
+    const yyyy = brlMatch[3];
+    return `${yyyy}-${mm}-${dd}`;
+  }
+  const isoMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (isoMatch) {
+    return trimmed;
+  }
+  return getTodayString();
+}
+
+function getRelativeBrlDate(offsetDays: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + offsetDays);
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${dd}/${mm}/${yyyy}`;
+}
 
 export type FinanceFormKind =
   | 'transaction'
@@ -145,7 +180,7 @@ export function FinanceFormModal({
         setTxType(normalizedType);
         setDescription(editTransaction.description);
         setAmountInput(String(Math.abs(editTransaction.amount)).replace('.', ','));
-        setDateInput(editTransaction.date.slice(0, 10));
+        setDateInput(isoToBrlDate(editTransaction.date.slice(0, 10)));
         setAccountId(editTransaction.accountId);
         setDestinationAccountId(editTransaction.destinationAccountId ?? '');
         setCategoryId(editTransaction.categoryId ?? '');
@@ -155,7 +190,7 @@ export function FinanceFormModal({
         setTxType(defaultTxType);
         setDescription('');
         setAmountInput('');
-        setDateInput(getTodayString());
+        setDateInput(isoToBrlDate(getTodayString()));
         const firstAcc = activeAccounts[0]?.id ?? '';
         const secondAcc = activeAccounts[1]?.id ?? firstAcc;
         setAccountId(firstAcc);
@@ -255,6 +290,7 @@ export function FinanceFormModal({
             : txType === 'INCOME'
               ? 'Nova Receita'
               : 'Nova Despesa');
+        const resolvedIsoDate = parseDateToIso(dateInput);
 
         if (editTransaction) {
           await saveFinance(
@@ -265,7 +301,7 @@ export function FinanceFormModal({
               destinationAccountId: txType === 'TRANSFER' ? destinationAccountId : undefined,
               amount: numericAmount,
               type: txType,
-              date: dateInput,
+              date: resolvedIsoDate,
               description: cleanDesc,
               paid,
             },
@@ -279,7 +315,7 @@ export function FinanceFormModal({
             sourceAccountId: accountId,
             destinationAccountId,
             amount: numericAmount,
-            date: dateInput,
+            date: resolvedIsoDate,
             description: cleanDesc,
           });
         } else if (recurrenceMode === 'installments') {
@@ -289,7 +325,7 @@ export function FinanceFormModal({
             categoryId: categoryId || undefined,
             totalAmount: numericAmount,
             totalInstallments: totalInst,
-            startDate: dateInput,
+            startDate: resolvedIsoDate,
             description: cleanDesc,
           });
         } else if (recurrenceMode === 'recurring') {
@@ -298,7 +334,7 @@ export function FinanceFormModal({
             categoryId: categoryId || undefined,
             amount: numericAmount,
             type: txType,
-            startDate: dateInput,
+            startDate: resolvedIsoDate,
             frequency,
             description: cleanDesc,
           });
@@ -308,7 +344,7 @@ export function FinanceFormModal({
             categoryId: categoryId || undefined,
             amount: numericAmount,
             type: txType,
-            date: dateInput,
+            date: resolvedIsoDate,
             description: cleanDesc,
             paid,
           });
@@ -499,13 +535,35 @@ export function FinanceFormModal({
                     />
                   </View>
                   <View className="flex-1 gap-1.5">
-                    <Label nativeID="tx-date">Data (AAAA-MM-DD)</Label>
+                    <Label nativeID="tx-date">Data (DD/MM/AAAA)</Label>
                     <Input
-                      placeholder="2026-10-15"
+                      placeholder="15/10/2026"
                       style={TABULAR_NUMS}
                       value={dateInput}
                       onChangeText={setDateInput}
                     />
+                    <View className="flex-row gap-1 pt-0.5">
+                      {(
+                        [
+                          { label: 'Ontem', offset: -1 },
+                          { label: 'Hoje', offset: 0 },
+                          { label: 'Amanhã', offset: 1 },
+                        ] as const
+                      ).map((chip) => {
+                        const val = getRelativeBrlDate(chip.offset);
+                        const active = dateInput === val;
+                        return (
+                          <Button
+                            key={chip.label}
+                            variant={active ? 'secondary' : 'outline'}
+                            size="sm"
+                            className="h-6 flex-1 px-1.5"
+                            onPress={() => setDateInput(val)}>
+                            <Text className="text-[10px] font-semibold">{chip.label}</Text>
+                          </Button>
+                        );
+                      })}
+                    </View>
                   </View>
                 </View>
 
@@ -521,10 +579,17 @@ export function FinanceFormModal({
                           key={acc.id}
                           variant={active ? 'default' : 'outline'}
                           size="sm"
-                          className="h-8 flex-row items-center gap-1.5 px-2.5"
+                          className="h-9 flex-row items-center gap-1.5 px-2.5"
                           onPress={() => setAccountId(acc.id)}>
                           <BankBadge name={acc.name} type={acc.type} size="xs" />
-                          <Text className="text-xs">{acc.name}</Text>
+                          <Text className="text-xs font-semibold">{acc.name}</Text>
+                          <Text
+                            style={TABULAR_NUMS}
+                            className={`text-[10px] ${
+                              active ? 'text-primary-foreground/80' : 'text-muted-foreground'
+                            }`}>
+                            ({formatBrlCurrency(acc.realized ?? 0, false)})
+                          </Text>
                         </Button>
                       );
                     })}

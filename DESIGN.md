@@ -43,11 +43,23 @@ typography:
     fontWeight: 400
     lineHeight: 1.5
     letterSpacing: "normal"
+  caption:
+    fontFamily: "Inter, System, Roboto, SF Pro Text, sans-serif"
+    fontSize: "12px"
+    fontWeight: 500
+    lineHeight: 1.4
+    letterSpacing: "normal"
   label:
     fontFamily: "Inter, System, Roboto, SF Pro Text, sans-serif"
     fontSize: "11px"
     fontWeight: 700
     lineHeight: 1.35
+    letterSpacing: "0.06em"
+  micro:
+    fontFamily: "Inter, System, Roboto, SF Pro Text, sans-serif"
+    fontSize: "10px"
+    fontWeight: 700
+    lineHeight: 1.3
     letterSpacing: "0.06em"
 rounded:
   sm: "8px"

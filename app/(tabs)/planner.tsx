@@ -588,7 +588,9 @@ export default function PlannerScreen() {
                         <Text className="text-[10px] uppercase text-muted-foreground">
                           Reserva Recomendada ({recommendation.summary.emergencyTargetMonths}m)
                         </Text>
-                        <Text style={TABULAR_NUMS} className="text-sm font-bold text-sky-400">
+                        <Text
+                          style={TABULAR_NUMS}
+                          className="text-sm font-bold text-sky-600 dark:text-sky-400">
                           {formatBrlCurrency(
                             recommendation.summary.emergencyTargetAmount,
                             privateMode
@@ -623,7 +625,9 @@ export default function PlannerScreen() {
                               alert.severity === 'CRITICAL' ? ShieldAlertIcon : AlertTriangleIcon
                             }
                             className={`size-4 ${
-                              alert.severity === 'CRITICAL' ? 'text-destructive' : 'text-amber-400'
+                              alert.severity === 'CRITICAL'
+                                ? 'text-destructive'
+                                : 'text-amber-600 dark:text-amber-400'
                             }`}
                           />
                           <Text className="text-xs font-bold text-foreground">{alert.title}</Text>
@@ -713,9 +717,9 @@ export default function PlannerScreen() {
                                         className="h-4 border-amber-500/40 bg-amber-500/15 px-1.5 py-0">
                                         <Icon
                                           as={LockIcon}
-                                          className="mr-1 size-2.5 text-amber-400"
+                                          className="mr-1 size-2.5 text-amber-600 dark:text-amber-400"
                                         />
-                                        <Text className="text-[9px] font-bold text-amber-400">
+                                        <Text className="text-[10px] font-bold text-amber-600 dark:text-amber-400">
                                           Protegido
                                         </Text>
                                       </Badge>
@@ -738,7 +742,11 @@ export default function PlannerScreen() {
                               </View>
                             </View>
 
-                            <Progress value={bucket.percentage} className="h-2 bg-secondary" />
+                            <Progress
+                              value={bucket.percentage}
+                              indicatorColor={bucket.color}
+                              className="h-2 bg-secondary"
+                            />
 
                             <Text className="text-[11px] leading-relaxed text-muted-foreground">
                               {bucket.reason}

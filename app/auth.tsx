@@ -261,17 +261,19 @@ export default function AuthScreen() {
           showsVerticalScrollIndicator={false}>
           {/* Top Bar matching AuthPage header */}
           <View className="mb-3 flex-row items-center justify-end gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-9 flex-row items-center gap-1.5 px-2.5"
-              onPress={() => void handleDemoLogin()}
-              disabled={loading}>
-              <Icon as={SparklesIcon} className="size-3.5 text-primary" />
-              <Text className="text-xs font-medium text-muted-foreground">
-                Modo Demonstração
-              </Text>
-            </Button>
+            {mode !== 'login' ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-9 flex-row items-center gap-1.5 px-2.5"
+                onPress={() => void handleDemoLogin()}
+                disabled={loading}>
+                <Icon as={SparklesIcon} className="size-3.5 text-primary" />
+                <Text className="text-xs font-medium text-muted-foreground">
+                  Modo Demonstração
+                </Text>
+              </Button>
+            ) : null}
 
             <Button
               variant="ghost"
@@ -386,7 +388,7 @@ export default function AuthScreen() {
                       <Pressable
                         onPress={() => switchMode('forgot')}
                         accessibilityRole="button">
-                        <Text className="text-[13px] font-medium text-primary">
+                        <Text className="text-xs font-medium text-primary">
                           Esqueceu sua senha?
                         </Text>
                       </Pressable>
@@ -417,7 +419,7 @@ export default function AuthScreen() {
                         )}
                       </Pressable>
                     </View>
-                    <Text className="text-[13px] leading-relaxed text-muted-foreground">
+                    <Text className="text-xs leading-relaxed text-muted-foreground">
                       Sua chave pessoal de acesso ao Rumvel.
                     </Text>
                   </View>
@@ -487,7 +489,7 @@ export default function AuthScreen() {
                           )}
                         </Pressable>
                       </View>
-                      <Text className="text-[13px] leading-relaxed text-muted-foreground">
+                      <Text className="text-xs leading-relaxed text-muted-foreground">
                         Use pelo menos 8 caracteres.
                       </Text>
                     </View>
@@ -616,12 +618,12 @@ export default function AuthScreen() {
                   </Button>
                 )}
 
-                {/* Other Access Options (matching web AuthPage SocialLoginButtons + Sandbox) */}
+                {/* Other Access Options */}
                 {mode === 'login' ? (
                   <>
                     <View className="my-1 flex-row items-center gap-3">
                       <Separator className="flex-1" />
-                      <Text className="text-[13px] text-muted-foreground">
+                      <Text className="text-xs text-muted-foreground">
                         Outras formas de acesso
                       </Text>
                       <Separator className="flex-1" />
@@ -643,8 +645,8 @@ export default function AuthScreen() {
                           </Button>
                         ))}
                       </View>
-                      <Text className="text-center text-[12px] text-muted-foreground/90">
-                        Apple, Google e Meta indisponíveis no momento.
+                      <Text className="text-center text-xs text-muted-foreground/90">
+                        Apple, Google e Meta em breve no aplicativo.
                       </Text>
                     </View>
 

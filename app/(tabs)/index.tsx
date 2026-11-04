@@ -12,12 +12,13 @@ import {
   ClockIcon,
   PieChartIcon,
   PlusIcon,
+  RotateCcwIcon,
   SparklesIcon,
   WalletIcon,
 } from 'lucide-react-native';
 import { AppHeader } from '@/components/finance/AppHeader';
 import { BankBadge } from '@/components/finance/BankBadge';
-import { CategoryBadge } from '@/components/finance/CategoryBadge';
+import { CategoryBadge, getCategoryMeta } from '@/components/finance/CategoryBadge';
 import { FinanceFormModal, type FinanceFormKind } from '@/components/finance/FinanceFormModal';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -40,6 +41,7 @@ import {
   getTodayString,
   TABULAR_NUMS,
 } from '@/lib/formatters';
+import type { FinanceTransaction } from '@/lib/financeApi';
 
 export default function DashboardScreen() {
   const router = useRouter();
@@ -57,6 +59,7 @@ export default function DashboardScreen() {
   const [modalKind, setModalKind] = useState<FinanceFormKind>('transaction');
   const [defaultTxType, setDefaultTxType] = useState<'EXPENSE' | 'INCOME' | 'TRANSFER'>('EXPENSE');
   const [payingId, setPayingId] = useState<string | null>(null);
+  const [lastPaidTx, setLastPaidTx] = useState<FinanceTransaction | null>(null);
 
   const openQuickTx = (type: 'EXPENSE' | 'INCOME' | 'TRANSFER') => {
     setModalKind('transaction');
@@ -100,7 +103,7 @@ export default function DashboardScreen() {
   const dailyAverageMeta = useMemo(() => {
     const expense = dashboardData?.expense ?? 0;
     if (expense <= 0) {
-      return { amount: 0, note: 'Sem despesas registradas no mês' };
+      return { amount: 0, note: 'Sem despesas no mês' };
     }
     const [yearStr, monthStr] = month.split('-');
     const year = parseInt(yearStr, 10) || new Date().getFullYear();
@@ -113,8 +116,8 @@ export default function DashboardScreen() {
       : daysInMonth;
     const avg = expense / daysCount;
     const note = isCurrentMonth
-      ? `Ritmo em ${daysCount} ${daysCount === 1 ? 'dia decorrido' : 'dias decorridos'}`
-      : `Média nos ${daysInMonth} dias do mês`;
+      ? `Ritmo em ${daysCount} ${daysCount === 1 ? 'dia' : 'dias'}`
+      : `Média em ${daysInMonth} dias`;
     return { amount: avg, note };
   }, [dashboardData?.expense, month]);
 
@@ -147,12 +150,19 @@ export default function DashboardScreen() {
         const info = categoryMap.get(catId);
         const parentInfo = info?.parentId ? categoryMap.get(info.parentId) : undefined;
         const pct = Math.round((amount / totalExpense) * 100);
+        const meta = getCategoryMeta(
+          info?.name ?? 'Sem categoria',
+          parentInfo?.name,
+          'EXPENSE',
+          info?.iconSlug,
+          info?.color
+        );
         return {
           catId,
           name: info?.name ?? 'Sem categoria',
           parentName: parentInfo?.name,
           iconSlug: info?.iconSlug,
-          color: info?.color,
+          color: meta.color,
           amount,
           pct,
         };
@@ -163,14 +173,34 @@ export default function DashboardScreen() {
 
   const todayStr = getTodayString();
 
-  const handleTogglePay = async (tx: (typeof transactions)[number]) => {
+  const handleTogglePay = async (tx: FinanceTransaction) => {
     setPayingId(tx.id);
     try {
       await optimisticTogglePay(tx, !tx.paid);
+      if (!tx.paid) {
+        setLastPaidTx(tx);
+      } else {
+        setLastPaidTx(null);
+      }
     } finally {
       setPayingId(null);
     }
   };
+
+  const handleUndoPay = async () => {
+    if (!lastPaidTx) return;
+    const target = lastPaidTx;
+    setLastPaidTx(null);
+    setPayingId(target.id);
+    try {
+      await optimisticTogglePay({ ...target, paid: true }, false);
+    } finally {
+      setPayingId(null);
+    }
+  };
+
+  const realizedBalance = dashboardData?.realizedBalance ?? 0;
+  const projectedBalance = dashboardData?.projectedBalance ?? realizedBalance;
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top']}>
@@ -194,28 +224,70 @@ export default function DashboardScreen() {
           </Card>
         ) : null}
 
-        {/* Onboarding / AI Planner Banner (matching web OnboardingBanner.tsx) */}
-        <Card className="border-primary/30 bg-card">
-          <CardContent className="flex-row items-center justify-between gap-3 p-4">
-            <View className="flex-row items-center gap-3 flex-1">
-              <View className="h-10 w-10 items-center justify-center rounded-xl border border-primary/30 bg-primary/15">
-                <Icon as={SparklesIcon} className="size-5 text-primary" />
-              </View>
-              <View className="flex-1">
-                <Text className="text-sm font-bold text-foreground">
-                  Planejador Inteligente Rumvel
+        {/* Hero Consolidated Balance Card (Display Hierarchy + Projected Balance & Daily Rhythm) */}
+        <Card className="border-border bg-card">
+          <CardContent className="gap-3 p-4">
+            <View className="flex-row items-center justify-between">
+              <View className="flex-row items-center gap-2">
+                <View className="h-7 w-7 items-center justify-center rounded-lg bg-primary/15">
+                  <Icon as={WalletIcon} className="size-4 text-primary" />
+                </View>
+                <Text className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Saldo Consolidado Realizado
                 </Text>
-                <Text className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                  Distribua sua renda nos baldes orçamentários protegendo moradia e prioridades.
+              </View>
+              <Badge variant="outline" className="border-border px-2 py-0.5">
+                <Text className="text-[10px] font-bold uppercase text-muted-foreground">
+                  {accounts.filter((a) => a.includeInTotal !== false).length} contas
+                </Text>
+              </Badge>
+            </View>
+
+            {isLoadingFinance && !dashboardData ? (
+              <Skeleton className="h-9 w-48 rounded-md" />
+            ) : (
+              <Text
+                style={TABULAR_NUMS}
+                className={`text-3xl font-extrabold tracking-tight ${
+                  realizedBalance > 0
+                    ? 'text-primary'
+                    : realizedBalance < 0
+                      ? 'text-destructive'
+                      : 'text-foreground'
+                }`}>
+                {formatBrlCurrency(realizedBalance, privateMode)}
+              </Text>
+            )}
+
+            <View className="flex-row items-center justify-between border-t border-border/70 pt-3">
+              <View className="flex-1 pr-2">
+                <Text className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Saldo Projetado no Mês
+                </Text>
+                <Text
+                  style={TABULAR_NUMS}
+                  className="mt-0.5 text-sm font-bold text-foreground">
+                  {formatBrlCurrency(projectedBalance, privateMode)}
+                </Text>
+              </View>
+
+              <View className="h-7 w-[1px] bg-border/70" />
+
+              <View className="flex-1 items-end pl-2">
+                <View className="flex-row items-center gap-1">
+                  <Icon as={CalendarIcon} className="size-3 text-muted-foreground" />
+                  <Text className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                    {dailyAverageMeta.note}
+                  </Text>
+                </View>
+                <Text
+                  style={TABULAR_NUMS}
+                  className="mt-0.5 text-sm font-bold text-foreground">
+                  {formatBrlCurrency(dailyAverageMeta.amount, privateMode)}
+                  <Text className="text-xs font-normal text-muted-foreground">/dia</Text>
                 </Text>
               </View>
             </View>
-            <Button
-              size="sm"
-              className="h-9 px-3"
-              onPress={() => router.push('/(tabs)/planner')}>
-              <Text className="text-xs font-semibold text-primary-foreground">Planejar</Text>
-            </Button>
           </CardContent>
         </Card>
 
@@ -249,103 +321,67 @@ export default function DashboardScreen() {
           </Button>
         </View>
 
-        {/* 4 Summary Metric Cards (matching web .summary-grid) */}
-        <View className="gap-3">
-          <View className="flex-row gap-3">
-            {/* Metric 1: Saldo realizado */}
-            <Card className="flex-1 border-border bg-card">
-              <CardContent className="justify-between gap-2 p-3.5">
-                <View className="flex-row items-center justify-between">
-                  <Text className="text-xs font-medium text-muted-foreground">
-                    Saldo realizado
-                  </Text>
-                  <Icon as={WalletIcon} className="size-4 text-muted-foreground" />
-                </View>
-                {isLoadingFinance && !dashboardData ? (
-                  <Skeleton className="h-6 w-24 rounded-md" />
-                ) : (
-                  <Text
-                    style={TABULAR_NUMS}
-                    className={`text-lg font-bold tracking-tight ${
-                      (dashboardData?.realizedBalance ?? 0) > 0
-                        ? 'text-primary'
-                        : (dashboardData?.realizedBalance ?? 0) < 0
-                          ? 'text-destructive'
-                          : 'text-foreground'
-                    }`}>
-                    {formatBrlCurrency(dashboardData?.realizedBalance ?? 0, privateMode)}
-                  </Text>
-                )}
-                <Text className="text-[11px] text-muted-foreground" numberOfLines={1}>
-                  Saldo atual das contas incluídas
-                </Text>
-              </CardContent>
-            </Card>
+        {/* 2-Column Pulse Grid: Entradas vs. Saídas (No Truncation) */}
+        <View className="flex-row gap-3">
+          <Card className="flex-1 border-border bg-card">
+            <CardContent className="justify-between gap-1.5 p-3.5">
+              <View className="flex-row items-center justify-between">
+                <Text className="text-xs font-medium text-muted-foreground">Entradas do mês</Text>
+                <Icon as={ArrowUpRightIcon} className="size-4 text-primary" />
+              </View>
+              <Text
+                style={TABULAR_NUMS}
+                className="text-lg font-bold tracking-tight text-primary">
+                {formatBrlCurrency(dashboardData?.income ?? 0, privateMode)}
+              </Text>
+              <Text className="text-[11px] text-muted-foreground">Recebidas e previstas</Text>
+            </CardContent>
+          </Card>
 
-            {/* Metric 2: Entradas do mês */}
-            <Card className="flex-1 border-border bg-card">
-              <CardContent className="justify-between gap-2 p-3.5">
-                <View className="flex-row items-center justify-between">
-                  <Text className="text-xs font-medium text-muted-foreground">
-                    Entradas do mês
-                  </Text>
-                  <Icon as={ArrowUpRightIcon} className="size-4 text-primary" />
-                </View>
-                <Text
-                  style={TABULAR_NUMS}
-                  className="text-lg font-bold tracking-tight text-primary">
-                  {formatBrlCurrency(dashboardData?.income ?? 0, privateMode)}
-                </Text>
-                <Text className="text-[11px] text-muted-foreground" numberOfLines={1}>
-                  Efetivadas e previstas no período
-                </Text>
-              </CardContent>
-            </Card>
-          </View>
-
-          <View className="flex-row gap-3">
-            {/* Metric 3: Saídas do mês */}
-            <Card className="flex-1 border-border bg-card">
-              <CardContent className="justify-between gap-2 p-3.5">
-                <View className="flex-row items-center justify-between">
-                  <Text className="text-xs font-medium text-muted-foreground">Saídas do mês</Text>
-                  <Icon as={ArrowDownLeftIcon} className="size-4 text-destructive" />
-                </View>
-                <Text
-                  style={TABULAR_NUMS}
-                  className="text-lg font-bold tracking-tight text-destructive">
-                  {formatBrlCurrency(dashboardData?.expense ?? 0, privateMode)}
-                </Text>
-                <Text className="text-[11px] text-muted-foreground" numberOfLines={1}>
-                  Efetivadas e previstas no período
-                </Text>
-              </CardContent>
-            </Card>
-
-            {/* Metric 4: Média de gasto diário */}
-            <Card className="flex-1 border-border bg-card">
-              <CardContent className="justify-between gap-2 p-3.5">
-                <View className="flex-row items-center justify-between">
-                  <Text className="text-xs font-medium text-muted-foreground">
-                    Média de gasto diário
-                  </Text>
-                  <Icon as={CalendarIcon} className="size-4 text-muted-foreground" />
-                </View>
-                <Text
-                  style={TABULAR_NUMS}
-                  className="text-lg font-bold tracking-tight text-foreground">
-                  {formatBrlCurrency(dailyAverageMeta.amount, privateMode)}
-                  <Text className="text-xs font-normal text-muted-foreground">/dia</Text>
-                </Text>
-                <Text className="text-[11px] text-muted-foreground" numberOfLines={1}>
-                  {dailyAverageMeta.note}
-                </Text>
-              </CardContent>
-            </Card>
-          </View>
+          <Card className="flex-1 border-border bg-card">
+            <CardContent className="justify-between gap-1.5 p-3.5">
+              <View className="flex-row items-center justify-between">
+                <Text className="text-xs font-medium text-muted-foreground">Saídas do mês</Text>
+                <Icon as={ArrowDownLeftIcon} className="size-4 text-destructive" />
+              </View>
+              <Text
+                style={TABULAR_NUMS}
+                className="text-lg font-bold tracking-tight text-destructive">
+                {formatBrlCurrency(dashboardData?.expense ?? 0, privateMode)}
+              </Text>
+              <Text className="text-[11px] text-muted-foreground">Pagas e pendentes</Text>
+            </CardContent>
+          </Card>
         </View>
 
-        {/* Minhas Contas (matching web FinanceDashboard overview accounts card with BankBadge) */}
+        {/* Onboarding / AI Planner Banner (Shown prominently when no budgets exist, compact otherwise) */}
+        {budgets.length === 0 ? (
+          <Card className="border-primary/30 bg-card">
+            <CardContent className="flex-row items-center justify-between gap-3 p-4">
+              <View className="flex-row items-center gap-3 flex-1">
+                <View className="h-10 w-10 items-center justify-center rounded-xl border border-primary/30 bg-primary/15">
+                  <Icon as={SparklesIcon} className="size-5 text-primary" />
+                </View>
+                <View className="flex-1">
+                  <Text className="text-sm font-bold text-foreground">
+                    Planejador Inteligente Rumvel
+                  </Text>
+                  <Text className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                    Distribua sua renda nos 9 potes protegendo moradia e prioridades.
+                  </Text>
+                </View>
+              </View>
+              <Button
+                size="sm"
+                className="h-9 px-3"
+                onPress={() => router.push('/(tabs)/planner')}>
+                <Text className="text-xs font-semibold text-primary-foreground">Planejar</Text>
+              </Button>
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {/* Minhas Contas (with BankBadge) */}
         <Card className="border-border bg-card">
           <CardHeader className="flex-row items-center justify-between pb-2">
             <View>
@@ -357,7 +393,8 @@ export default function DashboardScreen() {
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8"
+              className="h-9 w-9"
+              hitSlop={8}
               accessibilityLabel="Adicionar conta"
               onPress={openNewAccount}>
               <Icon as={PlusIcon} className="size-4 text-foreground" />
@@ -410,7 +447,7 @@ export default function DashboardScreen() {
           </CardFooter>
         </Card>
 
-        {/* Despesas por Categoria (with official CategoryBadge) */}
+        {/* Despesas por Categoria (with official CategoryBadge & semantic colored Progress) */}
         <Card className="border-border bg-card">
           <CardHeader className="pb-2">
             <CardTitle className="text-base font-bold text-foreground">
@@ -451,14 +488,18 @@ export default function DashboardScreen() {
                       </Badge>
                     </View>
                   </View>
-                  <Progress value={item.pct} className="h-2 bg-secondary" />
+                  <Progress
+                    value={item.pct}
+                    indicatorColor={item.color}
+                    className="h-2 bg-secondary"
+                  />
                 </View>
               ))
             )}
           </CardContent>
         </Card>
 
-        {/* Orçamentos do mês (matching web FinanceDashboard budgetList) */}
+        {/* Orçamentos do mês */}
         <Card className="border-border bg-card">
           <CardHeader className="flex-row items-center justify-between pb-2">
             <View>
@@ -469,7 +510,14 @@ export default function DashboardScreen() {
                 Mais intenção em cada escolha.
               </CardDescription>
             </View>
-            <Icon as={PieChartIcon} className="size-4 text-muted-foreground" />
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 flex-row items-center gap-1 px-2"
+              onPress={() => router.push('/(tabs)/planner')}>
+              <Icon as={SparklesIcon} className="size-3.5 text-primary" />
+              <Text className="text-[11px] font-semibold text-primary">Planejador IA</Text>
+            </Button>
           </CardHeader>
 
           <CardContent className="gap-3 pt-2">
@@ -527,7 +575,7 @@ export default function DashboardScreen() {
                             ? 'bg-amber-500'
                             : 'bg-primary'
                       }
-                      className="h-2"
+                      className="h-2 bg-secondary"
                     />
                     <View className="flex-row justify-between">
                       <Text style={TABULAR_NUMS} className="text-xs text-muted-foreground">
@@ -555,7 +603,7 @@ export default function DashboardScreen() {
           </CardFooter>
         </Card>
 
-        {/* Próximos lançamentos (matching web FinanceDashboard overview-upcoming) */}
+        {/* Próximos lançamentos (with 1-tap Undo banner and non-crushed two-line layout) */}
         <Card className="border-border bg-card">
           <CardHeader className="pb-2">
             <CardTitle className="text-base font-bold text-foreground">
@@ -567,6 +615,22 @@ export default function DashboardScreen() {
           </CardHeader>
 
           <CardContent className="gap-0 pt-1">
+            {lastPaidTx ? (
+              <View className="mb-2 flex-row items-center justify-between rounded-lg border border-primary/30 bg-primary/10 px-3 py-2">
+                <Text className="flex-1 text-xs font-medium text-foreground" numberOfLines={1}>
+                  Efetivado: <Text className="font-bold text-xs">{lastPaidTx.description}</Text>
+                </Text>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 flex-row items-center gap-1 px-2"
+                  onPress={() => void handleUndoPay()}>
+                  <Icon as={RotateCcwIcon} className="size-3.5 text-primary" />
+                  <Text className="text-xs font-bold text-primary">Desfazer</Text>
+                </Button>
+              </View>
+            ) : null}
+
             {unpaidTransactions.length === 0 ? (
               <View className="flex-row items-center gap-2.5 py-3">
                 <Icon as={CheckCircle2Icon} className="size-5 text-primary" />
@@ -602,13 +666,13 @@ export default function DashboardScreen() {
                       </View>
                     )}
 
-                    <View className="flex-1">
-                      <Text className="text-xs font-medium text-foreground" numberOfLines={1}>
+                    <View className="flex-1 pr-1">
+                      <Text className="text-xs font-semibold text-foreground" numberOfLines={1}>
                         {tx.description || 'Sem descrição'}
                       </Text>
                       <Text className="mt-0.5 text-[11px] text-muted-foreground" numberOfLines={1}>
                         {isOverdue ? (
-                          <Text className="text-[11px] font-medium text-destructive">
+                          <Text className="text-[11px] font-semibold text-destructive">
                             Atrasado ·{' '}
                           </Text>
                         ) : null}
@@ -616,20 +680,22 @@ export default function DashboardScreen() {
                       </Text>
                     </View>
 
-                    <Text style={TABULAR_NUMS} className="text-xs font-semibold text-foreground">
-                      {formatBrlCurrency(Math.abs(tx.amount), privateMode)}
-                    </Text>
-
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-7 px-2.5"
-                      disabled={payingId === tx.id}
-                      onPress={() => void handleTogglePay(tx)}>
-                      <Text className="text-[11px] font-semibold">
-                        {payingId === tx.id ? '...' : 'Efetivar'}
+                    <View className="items-end gap-1">
+                      <Text style={TABULAR_NUMS} className="text-xs font-bold text-foreground">
+                        {formatBrlCurrency(Math.abs(tx.amount), privateMode)}
                       </Text>
-                    </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 px-2.5"
+                        hitSlop={6}
+                        disabled={payingId === tx.id}
+                        onPress={() => void handleTogglePay(tx)}>
+                        <Text className="text-[11px] font-semibold">
+                          {payingId === tx.id ? '...' : 'Efetivar'}
+                        </Text>
+                      </Button>
+                    </View>
                   </View>
                 );
               })
@@ -637,7 +703,7 @@ export default function DashboardScreen() {
           </CardContent>
         </Card>
 
-        {/* Últimos lançamentos (matching web FinanceDashboard compact transactionsTable) */}
+        {/* Últimos lançamentos */}
         <Card className="border-border bg-card">
           <CardHeader className="flex-row items-center justify-between pb-2">
             <View>
@@ -722,7 +788,7 @@ export default function DashboardScreen() {
                                 : 'bg-amber-500'
                           }`}
                         />
-                        <Text className="text-[10px] font-medium text-muted-foreground">
+                        <Text className="text-[10px] font-bold uppercase text-muted-foreground">
                           {tx.paid ? 'Pago' : isOverdue ? 'Atrasado' : 'Pendente'}
                         </Text>
                       </View>

@@ -16,6 +16,16 @@ import {
 import { AppHeader } from '@/components/finance/AppHeader';
 import { BankBadge } from '@/components/finance/BankBadge';
 import { FinanceFormModal } from '@/components/finance/FinanceFormModal';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -80,6 +90,8 @@ export default function AccountsScreen() {
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editAcc, setEditAcc] = useState<FinanceAccount | null>(null);
+  const [accountToDelete, setAccountToDelete] = useState<FinanceAccount | null>(null);
+  const [deletingBankAcc, setDeletingBankAcc] = useState(false);
 
   // CDI / Inflation Simulator state
   const [simCapitalInput, setSimCapitalInput] = useState('10000');
@@ -134,9 +146,16 @@ export default function AccountsScreen() {
     await refreshFinance();
   };
 
-  const handleRemoveAccount = async (acc: FinanceAccount) => {
-    await deleteAccount(acc.id);
-    await refreshFinance();
+  const handleConfirmRemoveAccount = async () => {
+    if (!accountToDelete) return;
+    setDeletingBankAcc(true);
+    try {
+      await deleteAccount(accountToDelete.id);
+      setAccountToDelete(null);
+      await refreshFinance();
+    } finally {
+      setDeletingBankAcc(false);
+    }
   };
 
   const handleExportLgpdData = async () => {
@@ -197,7 +216,7 @@ export default function AccountsScreen() {
           </Button>
         </View>
 
-        {/* Accounts Catalog Grid (matching web FinanceDashboard page === "contas") */}
+        {/* Accounts Catalog Grid */}
         <View className="gap-3">
           {accounts.map((acc) => (
             <Card
@@ -246,11 +265,12 @@ export default function AccountsScreen() {
                   ) : null}
                 </View>
 
-                <View className="flex-row flex-wrap items-center justify-end gap-1 border-t border-border/70 pt-2">
+                <View className="flex-row flex-wrap items-center justify-end gap-1.5 border-t border-border/70 pt-2">
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-8 flex-row items-center gap-1.5 px-2.5"
+                    className="h-9 flex-row items-center gap-1.5 px-3"
+                    hitSlop={6}
                     onPress={() => handleOpenEditAccount(acc)}
                     accessibilityLabel={`Editar conta ${acc.name}`}>
                     <Icon as={PencilIcon} className="size-3.5 text-muted-foreground" />
@@ -260,7 +280,8 @@ export default function AccountsScreen() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-8 flex-row items-center gap-1.5 px-2.5"
+                    className="h-9 flex-row items-center gap-1.5 px-3"
+                    hitSlop={6}
                     onPress={() => void handleToggleArchive(acc)}
                     accessibilityLabel={`${acc.archived ? 'Desarquivar' : 'Arquivar'} conta ${acc.name}`}>
                     <Icon as={ArchiveIcon} className="size-3.5 text-muted-foreground" />
@@ -272,8 +293,9 @@ export default function AccountsScreen() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-8 flex-row items-center gap-1.5 px-2.5"
-                    onPress={() => void handleRemoveAccount(acc)}
+                    className="h-9 flex-row items-center gap-1.5 px-3"
+                    hitSlop={6}
+                    onPress={() => setAccountToDelete(acc)}
                     accessibilityLabel={`Excluir conta ${acc.name}`}>
                     <Icon as={Trash2Icon} className="size-3.5 text-destructive" />
                     <Text className="text-xs font-medium text-destructive">Excluir</Text>
@@ -283,7 +305,7 @@ export default function AccountsScreen() {
             </Card>
           ))}
 
-          {/* Add Account Card matching web catalog-grid */}
+          {/* Add Account Card */}
           <Card className="border-dashed border-border bg-card">
             <CardContent className="items-center justify-center gap-1.5 py-6">
               <Text className="text-sm font-bold text-foreground">
@@ -323,7 +345,8 @@ export default function AccountsScreen() {
             <Button
               size="icon"
               variant="outline"
-              className="h-8 w-8"
+              className="h-9 w-9"
+              hitSlop={6}
               disabled={isLoadingMarket}
               onPress={() => void refreshMarket(true)}>
               <Icon as={RefreshCwIcon} className="size-3.5 text-primary" />
@@ -397,7 +420,7 @@ export default function AccountsScreen() {
                 variant="outline"
                 className="w-full flex-row items-center justify-start gap-2.5"
                 onPress={() => void resetDemoSandbox()}>
-                <Icon as={RotateCcwIcon} className="size-4 text-amber-400" />
+                <Icon as={RotateCcwIcon} className="size-4 text-amber-600 dark:text-amber-400" />
                 <Text className="text-xs font-semibold">
                   Restaurar Dados Originais do Modo Demonstração
                 </Text>
@@ -409,7 +432,7 @@ export default function AccountsScreen() {
               className="w-full flex-row items-center justify-start gap-2.5"
               onPress={() => void logout()}>
               <Icon as={LogOutIcon} className="size-4 text-foreground" />
-              <Text className="text-xs font-semibold">Sair da conta</Text>
+              <Text className="text-xs font-semibold">Sair da Sessão</Text>
             </Button>
 
             <Separator className="my-1" />
@@ -442,6 +465,34 @@ export default function AccountsScreen() {
         editAccount={editAcc}
         onSuccess={refreshFinance}
       />
+
+      {/* Bank Account Deletion Confirmation AlertDialog */}
+      <AlertDialog
+        open={Boolean(accountToDelete)}
+        onOpenChange={(o) => !o && setAccountToDelete(null)}>
+        <AlertDialogContent className="border-border bg-card">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir conta bancária?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir a conta &ldquo;{accountToDelete?.name}&rdquo;? Esta
+              ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-row justify-end gap-2">
+            <AlertDialogCancel disabled={deletingBankAcc}>
+              <Text>Cancelar</Text>
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive"
+              disabled={deletingBankAcc}
+              onPress={() => void handleConfirmRemoveAccount()}>
+              <Text className="font-bold text-destructive-foreground">
+                {deletingBankAcc ? 'Excluindo...' : 'Excluir'}
+              </Text>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* LGPD Export Viewer Dialog */}
       <Dialog open={Boolean(exportedJson)} onOpenChange={(o) => !o && setExportedJson(null)}>

@@ -17,6 +17,16 @@ import {
 import { AppHeader } from '@/components/finance/AppHeader';
 import { CategoryBadge } from '@/components/finance/CategoryBadge';
 import { FinanceFormModal, type FinanceFormKind } from '@/components/finance/FinanceFormModal';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -42,6 +52,12 @@ import {
 } from '@/lib/financeApi';
 import { formatBrlCurrency, TABULAR_NUMS } from '@/lib/formatters';
 
+interface PendingDelete {
+  kind: 'budget' | 'goal' | 'category' | 'tag';
+  id: string;
+  label: string;
+}
+
 export default function BudgetsScreen() {
   const { month, privateMode, dashboardData, refreshFinance } = useApp();
 
@@ -51,6 +67,8 @@ export default function BudgetsScreen() {
   const [editBudget, setEditBudget] = useState<FinanceBudget | null>(null);
   const [editGoal, setEditGoal] = useState<FinanceGoal | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const accounts = dashboardData?.accounts ?? [];
   const categories = dashboardData?.categories ?? [];
@@ -106,9 +124,24 @@ export default function BudgetsScreen() {
     setModalOpen(true);
   };
 
-  const handleDeleteBudget = async (id: string) => {
-    await deleteBudget(id);
-    await refreshFinance();
+  const handleConfirmDelete = async () => {
+    if (!pendingDelete) return;
+    setDeleting(true);
+    try {
+      if (pendingDelete.kind === 'budget') {
+        await deleteBudget(pendingDelete.id);
+      } else if (pendingDelete.kind === 'goal') {
+        await deleteGoal(pendingDelete.id);
+      } else if (pendingDelete.kind === 'category') {
+        await saveFinance(`/categories/${pendingDelete.id}`, undefined, 'DELETE');
+      } else if (pendingDelete.kind === 'tag') {
+        await saveFinance(`/tags/${pendingDelete.id}`, undefined, 'DELETE');
+      }
+      setPendingDelete(null);
+      await refreshFinance();
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const handleCopyBudgetNextMonth = async (b: FinanceBudget) => {
@@ -117,25 +150,10 @@ export default function BudgetsScreen() {
     setFeedback(`Orçamento copiado para ${String(next.month).padStart(2, '0')}/${next.year}.`);
   };
 
-  const handleDeleteGoal = async (id: string) => {
-    await deleteGoal(id);
-    await refreshFinance();
-  };
-
   const handleCopyGoalNextMonth = async (g: FinanceGoal) => {
     const next = getNextYearMonth();
     await copyGoal(g.id, next.year, next.month);
     setFeedback(`Meta copiada para ${String(next.month).padStart(2, '0')}/${next.year}.`);
-  };
-
-  const handleDeleteCategory = async (id: string) => {
-    await saveFinance(`/categories/${id}`, undefined, 'DELETE');
-    await refreshFinance();
-  };
-
-  const handleDeleteTag = async (id: string) => {
-    await saveFinance(`/tags/${id}`, undefined, 'DELETE');
-    await refreshFinance();
   };
 
   return (
@@ -153,7 +171,7 @@ export default function BudgetsScreen() {
         {feedback ? (
           <View className="flex-row items-center justify-between rounded-lg border border-primary/40 bg-primary/15 px-3 py-2">
             <Text className="flex-1 text-xs font-semibold text-foreground">{feedback}</Text>
-            <Button variant="ghost" size="sm" className="h-6 px-2" onPress={() => setFeedback(null)}>
+            <Button variant="ghost" size="sm" className="h-7 px-2" onPress={() => setFeedback(null)}>
               <Text className="text-[10px] font-bold text-primary">Dispensar</Text>
             </Button>
           </View>
@@ -306,6 +324,7 @@ export default function BudgetsScreen() {
                     const parentCat = cat?.parentId
                       ? categories.find((c) => c.id === cat.parentId)
                       : undefined;
+                    const catName = cat?.name ?? 'Categoria';
                     const pct = Math.min(100, Math.max(0, Math.round(b.progress)));
                     const isExceeded = b.progress > 100 || b.status === 'EXCEEDED';
                     const isWarning = !isExceeded && b.progress > 80;
@@ -317,20 +336,20 @@ export default function BudgetsScreen() {
                           idx > 0 ? 'border-t border-border/60' : ''
                         }`}>
                         <View className="flex-row items-center justify-between">
-                          <View className="flex-row items-center gap-2.5">
+                          <View className="flex-row items-center gap-2.5 flex-1 pr-2">
                             <CategoryBadge
-                              name={cat?.name ?? 'Categoria'}
+                              name={catName}
                               parentName={parentCat?.name}
                               iconSlug={cat?.iconSlug}
                               color={cat?.color}
                               size="sm"
                             />
-                            <Text className="text-sm font-semibold text-foreground">
-                              {cat?.name ?? 'Categoria'}
+                            <Text className="text-sm font-semibold text-foreground" numberOfLines={1}>
+                              {catName}
                             </Text>
                           </View>
 
-                          <View className="flex-row items-center gap-1">
+                          <View className="flex-row items-center gap-1.5">
                             <Text
                               style={TABULAR_NUMS}
                               className={`mr-1 text-xs ${
@@ -343,7 +362,8 @@ export default function BudgetsScreen() {
                             <Button
                               size="icon"
                               variant="ghost"
-                              className="h-7 w-7"
+                              className="h-8 w-8"
+                              hitSlop={6}
                               onPress={() => void handleCopyBudgetNextMonth(b)}
                               accessibilityLabel="Copiar para próximo mês">
                               <Icon as={CopyIcon} className="size-3.5 text-muted-foreground" />
@@ -351,7 +371,8 @@ export default function BudgetsScreen() {
                             <Button
                               size="icon"
                               variant="ghost"
-                              className="h-7 w-7"
+                              className="h-8 w-8"
+                              hitSlop={6}
                               onPress={() => handleEditBudget(b)}
                               accessibilityLabel="Editar orçamento">
                               <Icon as={PencilIcon} className="size-3.5 text-muted-foreground" />
@@ -359,8 +380,15 @@ export default function BudgetsScreen() {
                             <Button
                               size="icon"
                               variant="ghost"
-                              className="h-7 w-7"
-                              onPress={() => void handleDeleteBudget(b.id)}
+                              className="h-8 w-8"
+                              hitSlop={6}
+                              onPress={() =>
+                                setPendingDelete({
+                                  kind: 'budget',
+                                  id: b.id,
+                                  label: `o orçamento de ${catName}`,
+                                })
+                              }
                               accessibilityLabel="Excluir orçamento">
                               <Icon as={Trash2Icon} className="size-3.5 text-destructive" />
                             </Button>
@@ -376,7 +404,7 @@ export default function BudgetsScreen() {
                                 ? 'bg-amber-500'
                                 : 'bg-primary'
                           }
-                          className="h-2"
+                          className="h-2 bg-secondary"
                         />
 
                         <View className="flex-row items-center justify-between">
@@ -427,6 +455,7 @@ export default function BudgetsScreen() {
                 ) : (
                   goals.map((g, idx) => {
                     const cat = categories.find((c) => c.id === g.categoryId);
+                    const catName = cat?.name ?? 'Receita';
                     const pct = Math.min(100, Math.max(0, Math.round(g.progress)));
                     return (
                       <View
@@ -435,19 +464,19 @@ export default function BudgetsScreen() {
                           idx > 0 ? 'border-t border-border/60' : ''
                         }`}>
                         <View className="flex-row items-center justify-between">
-                          <View className="flex-row items-center gap-2.5">
+                          <View className="flex-row items-center gap-2.5 flex-1 pr-2">
                             <CategoryBadge
-                              name={cat?.name ?? 'Receita'}
+                              name={catName}
                               type="INCOME"
                               iconSlug={cat?.iconSlug}
                               color={cat?.color}
                               size="sm"
                             />
-                            <Text className="text-sm font-semibold text-foreground">
-                              {cat?.name ?? 'Receita'}
+                            <Text className="text-sm font-semibold text-foreground" numberOfLines={1}>
+                              {catName}
                             </Text>
                           </View>
-                          <View className="flex-row items-center gap-1">
+                          <View className="flex-row items-center gap-1.5">
                             <Badge variant="secondary" className="h-5 px-1.5 py-0">
                               <Text
                                 style={TABULAR_NUMS}
@@ -458,28 +487,37 @@ export default function BudgetsScreen() {
                             <Button
                               size="icon"
                               variant="ghost"
-                              className="h-7 w-7"
+                              className="h-8 w-8"
+                              hitSlop={6}
                               onPress={() => void handleCopyGoalNextMonth(g)}>
                               <Icon as={CopyIcon} className="size-3.5 text-muted-foreground" />
                             </Button>
                             <Button
                               size="icon"
                               variant="ghost"
-                              className="h-7 w-7"
+                              className="h-8 w-8"
+                              hitSlop={6}
                               onPress={() => handleEditGoal(g)}>
                               <Icon as={PencilIcon} className="size-3.5 text-muted-foreground" />
                             </Button>
                             <Button
                               size="icon"
                               variant="ghost"
-                              className="h-7 w-7"
-                              onPress={() => void handleDeleteGoal(g.id)}>
+                              className="h-8 w-8"
+                              hitSlop={6}
+                              onPress={() =>
+                                setPendingDelete({
+                                  kind: 'goal',
+                                  id: g.id,
+                                  label: `a meta de ${catName}`,
+                                })
+                              }>
                               <Icon as={Trash2Icon} className="size-3.5 text-destructive" />
                             </Button>
                           </View>
                         </View>
 
-                        <Progress value={pct} className="h-2" />
+                        <Progress value={pct} className="h-2 bg-secondary" />
 
                         <View className="flex-row justify-between">
                           <Text style={TABULAR_NUMS} className="text-xs text-muted-foreground">
@@ -529,7 +567,7 @@ export default function BudgetsScreen() {
                     <View
                       key={cat.id}
                       className="flex-row items-center justify-between rounded-lg border border-border bg-background/60 px-3 py-2.5">
-                      <View className="flex-row items-center gap-2.5">
+                      <View className="flex-row items-center gap-2.5 flex-1 pr-2">
                         <CategoryBadge
                           name={cat.name}
                           parentName={parentCat?.name}
@@ -540,7 +578,7 @@ export default function BudgetsScreen() {
                         />
                         <Text className="text-xs font-semibold text-foreground">{cat.name}</Text>
                         <Badge variant="outline" className="h-4 px-1.5 py-0">
-                          <Text className="text-[9px] font-bold">
+                          <Text className="text-[10px] font-bold uppercase">
                             {cat.type.toUpperCase() === 'INCOME' ? 'Receita' : 'Despesa'}
                           </Text>
                         </Badge>
@@ -549,8 +587,15 @@ export default function BudgetsScreen() {
                         <Button
                           size="icon"
                           variant="ghost"
-                          className="h-7 w-7"
-                          onPress={() => void handleDeleteCategory(cat.id)}>
+                          className="h-8 w-8"
+                          hitSlop={6}
+                          onPress={() =>
+                            setPendingDelete({
+                              kind: 'category',
+                              id: cat.id,
+                              label: `a categoria "${cat.name}"`,
+                            })
+                          }>
                           <Icon as={Trash2Icon} className="size-3.5 text-destructive" />
                         </Button>
                       ) : null}
@@ -580,7 +625,7 @@ export default function BudgetsScreen() {
                 {tags.map((tag) => (
                   <View
                     key={tag.id}
-                    className="flex-row items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1">
+                    className="flex-row items-center gap-1.5 rounded-full border border-border bg-background pl-3 pr-1.5 py-1">
                     <View
                       style={{ backgroundColor: tag.color ?? '#00d494' }}
                       className="h-2.5 w-2.5 rounded-full"
@@ -589,9 +634,16 @@ export default function BudgetsScreen() {
                     <Button
                       size="icon"
                       variant="ghost"
-                      className="h-5 w-5"
-                      onPress={() => void handleDeleteTag(tag.id)}>
-                      <Icon as={Trash2Icon} className="size-3 text-muted-foreground" />
+                      className="h-7 w-7"
+                      hitSlop={6}
+                      onPress={() =>
+                        setPendingDelete({
+                          kind: 'tag',
+                          id: tag.id,
+                          label: `a etiqueta "${tag.name}"`,
+                        })
+                      }>
+                      <Icon as={Trash2Icon} className="size-3.5 text-muted-foreground" />
                     </Button>
                   </View>
                 ))}
@@ -612,6 +664,33 @@ export default function BudgetsScreen() {
         editGoal={editGoal}
         onSuccess={refreshFinance}
       />
+
+      <AlertDialog
+        open={Boolean(pendingDelete)}
+        onOpenChange={(o) => !o && setPendingDelete(null)}>
+        <AlertDialogContent className="border-border bg-card">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir {pendingDelete?.label}? Esta ação não pode ser
+              desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-row justify-end gap-2">
+            <AlertDialogCancel disabled={deleting}>
+              <Text>Cancelar</Text>
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive"
+              disabled={deleting}
+              onPress={() => void handleConfirmDelete()}>
+              <Text className="font-bold text-destructive-foreground">
+                {deleting ? 'Excluindo...' : 'Excluir'}
+              </Text>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </SafeAreaView>
   );
 }

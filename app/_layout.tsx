@@ -7,7 +7,7 @@ import { PortalHost } from '@rn-primitives/portal';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useColorScheme } from 'nativewind';
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { Text } from '@/components/ui/text';
 
@@ -54,17 +54,19 @@ function NavigationGate() {
 
 export default function RootLayout() {
   const { colorScheme, setColorScheme } = useColorScheme();
+  const didInitTheme = useRef(false);
 
   useEffect(() => {
-    if (!colorScheme) {
+    if (!didInitTheme.current) {
+      didInitTheme.current = true;
       setColorScheme('dark');
     }
-  }, [colorScheme, setColorScheme]);
+  }, [setColorScheme]);
 
   return (
     <AppProvider>
       <ThemeProvider value={NAV_THEME[colorScheme ?? 'dark']}>
-        <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+        <StatusBar style={colorScheme === 'light' ? 'dark' : 'light'} />
         <NavigationGate />
         <PortalHost />
       </ThemeProvider>
