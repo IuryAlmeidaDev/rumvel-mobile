@@ -183,6 +183,41 @@ export default function PlannerScreen() {
     if (dashboardData.income > 0) {
       setNetIncomeInput(String(Math.round(dashboardData.income)));
     }
+    const catMap = new Map(
+      (dashboardData.categories ?? []).map((c) => [c.id, c.name.toLowerCase()])
+    );
+    let housingSum = 0;
+    let groceriesSum = 0;
+    let transportSum = 0;
+    let healthSum = 0;
+
+    for (const tx of dashboardData.transactions ?? []) {
+      if (tx.type.toUpperCase() !== 'EXPENSE') continue;
+      const lower = (tx.categoryId ? catMap.get(tx.categoryId) : '') ?? '';
+      const amt = Math.abs(tx.amount);
+      if (lower.includes('moradia') || lower.includes('aluguel') || lower.includes('condom')) {
+        housingSum += amt;
+      } else if (
+        lower.includes('mercado') ||
+        lower.includes('alimenta') ||
+        lower.includes('feira')
+      ) {
+        groceriesSum += amt;
+      } else if (
+        lower.includes('transporte') ||
+        lower.includes('combust') ||
+        lower.includes('uber')
+      ) {
+        transportSum += amt;
+      } else if (lower.includes('saúde') || lower.includes('saude') || lower.includes('farm')) {
+        healthSum += amt;
+      }
+    }
+
+    if (housingSum > 0) setHousingCostInput(String(Math.round(housingSum)));
+    if (groceriesSum > 0) setGroceriesInput(String(Math.round(groceriesSum)));
+    if (transportSum > 0) setTransportInput(String(Math.round(transportSum)));
+    if (healthSum > 0) setHealthInput(String(Math.round(healthSum)));
   };
 
   const handleApplyToBudgets = async () => {

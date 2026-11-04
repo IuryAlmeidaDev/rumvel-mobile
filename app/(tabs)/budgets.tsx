@@ -146,14 +146,26 @@ export default function BudgetsScreen() {
 
   const handleCopyBudgetNextMonth = async (b: FinanceBudget) => {
     const next = getNextYearMonth();
-    await copyBudget(b.id, next.year, next.month);
-    setFeedback(`Orçamento copiado para ${String(next.month).padStart(2, '0')}/${next.year}.`);
+    try {
+      await copyBudget(b.id, next.year, next.month);
+      setFeedback(`Orçamento copiado para ${String(next.month).padStart(2, '0')}/${next.year}.`);
+    } catch (err) {
+      setFeedback(
+        err instanceof Error ? err.message : 'Não foi possível copiar o orçamento.'
+      );
+    }
   };
 
   const handleCopyGoalNextMonth = async (g: FinanceGoal) => {
     const next = getNextYearMonth();
-    await copyGoal(g.id, next.year, next.month);
-    setFeedback(`Meta copiada para ${String(next.month).padStart(2, '0')}/${next.year}.`);
+    try {
+      await copyGoal(g.id, next.year, next.month);
+      setFeedback(`Meta copiada para ${String(next.month).padStart(2, '0')}/${next.year}.`);
+    } catch (err) {
+      setFeedback(
+        err instanceof Error ? err.message : 'Não foi possível copiar a meta.'
+      );
+    }
   };
 
   return (

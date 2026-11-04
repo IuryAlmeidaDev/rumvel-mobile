@@ -211,6 +211,7 @@ export default function TransactionsScreen() {
               size="sm"
               variant={typeFilter === f.key ? 'default' : 'outline'}
               className="h-7 px-2.5"
+              accessibilityState={{ selected: typeFilter === f.key }}
               onPress={() => setTypeFilter(f.key)}>
               <Text className="text-[11px] font-semibold">{f.label}</Text>
             </Button>
@@ -233,6 +234,7 @@ export default function TransactionsScreen() {
               className={`h-7 px-2.5 ${
                 statusFilter === s.key ? 'border border-primary/40 bg-primary/15' : ''
               }`}
+              accessibilityState={{ selected: statusFilter === s.key }}
               onPress={() => setStatusFilter(s.key)}>
               <Text
                 className={`text-[11px] font-semibold ${
@@ -255,6 +257,7 @@ export default function TransactionsScreen() {
               size="sm"
               variant={selectedAccountId === 'ALL' ? 'secondary' : 'ghost'}
               className="h-7 px-2.5"
+              accessibilityState={{ selected: selectedAccountId === 'ALL' }}
               onPress={() => setSelectedAccountId('ALL')}>
               <Text className="text-[11px] font-semibold">Todas as contas</Text>
             </Button>
@@ -264,6 +267,7 @@ export default function TransactionsScreen() {
                 size="sm"
                 variant={selectedAccountId === acc.id ? 'secondary' : 'ghost'}
                 className="h-7 flex-row items-center gap-1.5 px-2.5"
+                accessibilityState={{ selected: selectedAccountId === acc.id }}
                 onPress={() => setSelectedAccountId(acc.id)}>
                 <BankBadge name={acc.name} type={acc.type} size="xs" />
                 <Text className="text-[11px] font-semibold">{acc.name}</Text>

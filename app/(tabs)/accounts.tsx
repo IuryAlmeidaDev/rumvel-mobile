@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { ScrollView, Share, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ArchiveIcon,
@@ -10,6 +10,7 @@ import {
   PlusIcon,
   RefreshCwIcon,
   RotateCcwIcon,
+  Share2Icon,
   ShieldCheckIcon,
   Trash2Icon,
 } from 'lucide-react-native';
@@ -98,6 +99,7 @@ export default function AccountsScreen() {
 
   // LGPD Export & Account Deletion Dialogs
   const [exportedJson, setExportedJson] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
   const [deletePhrase, setDeletePhrase] = useState('');
@@ -142,8 +144,42 @@ export default function AccountsScreen() {
   };
 
   const handleToggleArchive = async (acc: FinanceAccount) => {
-    await archiveAccount(acc.id, !acc.archived);
-    await refreshFinance();
+    try {
+      await archiveAccount(acc.id, !acc.archived);
+      await refreshFinance();
+      setFeedback(
+        acc.archived
+          ? `Conta "${acc.name}" reativada.`
+          : `Conta "${acc.name}" arquivada.`
+      );
+    } catch (err) {
+      setFeedback(
+        err instanceof Error ? err.message : 'Não foi possível alterar o status da conta.'
+      );
+    }
+  };
+
+  const handleResetDemo = async () => {
+    try {
+      await resetDemoSandbox();
+      setFeedback('Dados originais do ambiente de demonstração restaurados.');
+    } catch (err) {
+      setFeedback(
+        err instanceof Error ? err.message : 'Não foi possível restaurar o ambiente de demonstração.'
+      );
+    }
+  };
+
+  const handleShareLgpdData = async () => {
+    if (!exportedJson) return;
+    try {
+      await Share.share({
+        title: 'rumvel-portabilidade-lgpd.json',
+        message: exportedJson,
+      });
+    } catch {
+      // User dismissed share sheet
+    }
   };
 
   const handleConfirmRemoveAccount = async () => {
@@ -205,6 +241,15 @@ export default function AccountsScreen() {
         className="flex-1"
         contentContainerClassName="w-full max-w-3xl self-center gap-4 p-4 pb-12"
         showsVerticalScrollIndicator={false}>
+        {feedback ? (
+          <View className="flex-row items-center justify-between rounded-lg border border-primary/40 bg-primary/15 px-3 py-2">
+            <Text className="flex-1 text-xs font-semibold text-foreground">{feedback}</Text>
+            <Button variant="ghost" size="sm" className="h-7 px-2" onPress={() => setFeedback(null)}>
+              <Text className="text-[10px] font-bold text-primary">Dispensar</Text>
+            </Button>
+          </View>
+        ) : null}
+
         {/* Top Action Row */}
         <View className="flex-row items-center justify-between">
           <Text className="text-xs font-medium text-muted-foreground">
@@ -420,7 +465,7 @@ export default function AccountsScreen() {
               <Button
                 variant="outline"
                 className="w-full flex-row items-center justify-start gap-2.5"
-                onPress={() => void resetDemoSandbox()}>
+                onPress={() => void handleResetDemo()}>
                 <Icon as={RotateCcwIcon} className="size-4 text-amber-600 dark:text-amber-400" />
                 <Text className="text-xs font-semibold">
                   Restaurar Dados Originais do Modo Demonstração
@@ -507,9 +552,17 @@ export default function AccountsScreen() {
           <ScrollView className="max-h-[340px] rounded-lg border border-border bg-background p-3">
             <Text className="font-mono text-[10px] text-foreground">{exportedJson}</Text>
           </ScrollView>
-          <DialogFooter>
-            <Button size="sm" onPress={() => setExportedJson(null)}>
+          <DialogFooter className="flex-row justify-end gap-2">
+            <Button variant="outline" size="sm" onPress={() => setExportedJson(null)}>
               <Text>Fechar</Text>
+            </Button>
+            <Button
+              size="sm"
+              className="flex-row items-center gap-1.5"
+              onPress={() => void handleShareLgpdData()}
+              accessibilityLabel="Compartilhar ou salvar JSON de portabilidade LGPD">
+              <Icon as={Share2Icon} className="size-3.5 text-primary-foreground" />
+              <Text className="font-semibold text-primary-foreground">Compartilhar JSON</Text>
             </Button>
           </DialogFooter>
         </DialogContent>

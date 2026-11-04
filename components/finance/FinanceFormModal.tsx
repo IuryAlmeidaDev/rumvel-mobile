@@ -20,6 +20,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Text } from '@/components/ui/text';
+import { useApp } from '@/context/AppContext';
 import {
   saveFinance,
   updateBudget,
@@ -47,20 +48,50 @@ function isoToBrlDate(iso: string): string {
   return clean;
 }
 
-function parseDateToIso(raw: string): string {
+function formatDateInputMask(raw: string): string {
+  const digits = raw.replace(/\D/g, '').slice(0, 8);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4, 8)}`;
+}
+
+function isValidCalendarDate(year: number, month: number, day: number): boolean {
+  if (year < 1900 || year > 2100 || month < 1 || month > 12 || day < 1) return false;
+  const maxDays = new Date(year, month, 0).getDate();
+  return day <= maxDays;
+}
+
+function parseDateToIsoStrict(raw: string): string | null {
   const trimmed = raw.trim();
   const brlMatch = trimmed.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
   if (brlMatch) {
-    const dd = brlMatch[1].padStart(2, '0');
-    const mm = brlMatch[2].padStart(2, '0');
-    const yyyy = brlMatch[3];
-    return `${yyyy}-${mm}-${dd}`;
+    const day = Number(brlMatch[1]);
+    const month = Number(brlMatch[2]);
+    const year = Number(brlMatch[3]);
+    if (!isValidCalendarDate(year, month, day)) return null;
+    const dd = String(day).padStart(2, '0');
+    const mm = String(month).padStart(2, '0');
+    return `${year}-${mm}-${dd}`;
+  }
+  const digitsOnly = trimmed.match(/^(\d{2})(\d{2})(\d{4})$/);
+  if (digitsOnly) {
+    const day = Number(digitsOnly[1]);
+    const month = Number(digitsOnly[2]);
+    const year = Number(digitsOnly[3]);
+    if (!isValidCalendarDate(year, month, day)) return null;
+    const dd = String(day).padStart(2, '0');
+    const mm = String(month).padStart(2, '0');
+    return `${year}-${mm}-${dd}`;
   }
   const isoMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (isoMatch) {
+    const year = Number(isoMatch[1]);
+    const month = Number(isoMatch[2]);
+    const day = Number(isoMatch[3]);
+    if (!isValidCalendarDate(year, month, day)) return null;
     return trimmed;
   }
-  return getTodayString();
+  return null;
 }
 
 function getRelativeBrlDate(offsetDays: number): string {
@@ -116,6 +147,7 @@ export function FinanceFormModal({
   editGoal,
   onSuccess,
 }: FinanceFormModalProps) {
+  const { privateMode, setMonth } = useApp();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -290,7 +322,10 @@ export function FinanceFormModal({
             : txType === 'INCOME'
               ? 'Nova Receita'
               : 'Nova Despesa');
-        const resolvedIsoDate = parseDateToIso(dateInput);
+        const resolvedIsoDate = parseDateToIsoStrict(dateInput);
+        if (!resolvedIsoDate) {
+          throw new Error('Informe uma data válida no formato DD/MM/AAAA.');
+        }
 
         if (editTransaction) {
           await saveFinance(
@@ -348,6 +383,11 @@ export function FinanceFormModal({
             description: cleanDesc,
             paid,
           });
+        }
+
+        const savedMonth = resolvedIsoDate.slice(0, 7);
+        if (/^\d{4}-\d{2}$/.test(savedMonth) && savedMonth !== month) {
+          setMonth(savedMonth);
         }
       } else if (kind === 'account') {
         if (!accountName.trim()) {
@@ -505,6 +545,7 @@ export function FinanceFormModal({
                         variant={selected ? 'default' : 'outline'}
                         size="sm"
                         className="flex-1"
+                        accessibilityState={{ selected }}
                         onPress={() => setTxType(item.key)}>
                         <Text className="text-xs font-semibold">{item.label}</Text>
                       </Button>
@@ -518,6 +559,7 @@ export function FinanceFormModal({
                     placeholder="Ex: Supermercado, Salário, Aluguel..."
                     value={description}
                     onChangeText={setDescription}
+                    accessibilityLabel="Descrição do lançamento"
                   />
                 </View>
 
@@ -532,15 +574,19 @@ export function FinanceFormModal({
                       style={TABULAR_NUMS}
                       value={amountInput}
                       onChangeText={(v) => setAmountInput(sanitizeAmountInput(v))}
+                      accessibilityLabel="Valor em reais"
                     />
                   </View>
                   <View className="flex-1 gap-1.5">
                     <Label nativeID="tx-date">Data (DD/MM/AAAA)</Label>
                     <Input
+                      keyboardType="number-pad"
+                      maxLength={10}
                       placeholder="15/10/2026"
                       style={TABULAR_NUMS}
                       value={dateInput}
-                      onChangeText={setDateInput}
+                      onChangeText={(v) => setDateInput(formatDateInputMask(v))}
+                      accessibilityLabel="Data do lançamento no formato dia, mês e ano"
                     />
                     <View className="flex-row gap-1 pt-0.5">
                       {(
@@ -558,6 +604,7 @@ export function FinanceFormModal({
                             variant={active ? 'secondary' : 'outline'}
                             size="sm"
                             className="h-6 flex-1 px-1.5"
+                            accessibilityState={{ selected: active }}
                             onPress={() => setDateInput(val)}>
                             <Text className="text-[10px] font-semibold">{chip.label}</Text>
                           </Button>
@@ -580,6 +627,7 @@ export function FinanceFormModal({
                           variant={active ? 'default' : 'outline'}
                           size="sm"
                           className="h-9 flex-row items-center gap-1.5 px-2.5"
+                          accessibilityState={{ selected: active }}
                           onPress={() => setAccountId(acc.id)}>
                           <BankBadge name={acc.name} type={acc.type} size="xs" />
                           <Text className="text-xs font-semibold">{acc.name}</Text>
@@ -588,7 +636,7 @@ export function FinanceFormModal({
                             className={`text-[10px] ${
                               active ? 'text-primary-foreground/80' : 'text-muted-foreground'
                             }`}>
-                            ({formatBrlCurrency(acc.realized ?? 0, false)})
+                            ({formatBrlCurrency(acc.realized ?? 0, privateMode)})
                           </Text>
                         </Button>
                       );
@@ -608,6 +656,7 @@ export function FinanceFormModal({
                             variant={active ? 'default' : 'outline'}
                             size="sm"
                             className="h-8 flex-row items-center gap-1.5 px-2.5"
+                            accessibilityState={{ selected: active }}
                             onPress={() => setDestinationAccountId(acc.id)}>
                             <BankBadge name={acc.name} type={acc.type} size="xs" />
                             <Text className="text-xs">{acc.name}</Text>
@@ -628,6 +677,7 @@ export function FinanceFormModal({
                             variant={active ? 'default' : 'outline'}
                             size="sm"
                             className="h-8 flex-row items-center gap-1.5 px-2.5"
+                            accessibilityState={{ selected: active }}
                             onPress={() => setCategoryId(cat.id)}>
                             <CategoryBadge
                               name={cat.name}
